@@ -37,6 +37,9 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
     edited_ids: set[int] = set()
     react_ids: set[int] = set()
     media_ids: set[int] = set()
+    photo_ids: set[int] = set()
+    gif_ids: set[int] = set()
+    other_media_ids: set[int] = set()
     id_to_parent: Dict[int, Optional[int]] = {}
     id_to_msg: Dict[int, Dict[str, Any]] = {}
     root_cache: Dict[int, int] = {}
@@ -75,6 +78,12 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
         if media_cat is not None:
             if isinstance(mid, int):
                 media_ids.add(mid)
+                if media_cat == "photo":
+                    photo_ids.add(mid)
+                elif media_cat == "animation (GIF)":
+                    gif_ids.add(mid)
+                else:
+                    other_media_ids.add(mid)
             if isinstance(media_cat, str):
                 media_counter[media_cat] += 1
         if media_cat == "poll":
@@ -185,6 +194,10 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
     react_msgs_count = len(react_ids)
     media_msgs_count = len(media_ids)
     
+    photo_count = len(photo_ids)
+    gif_count = len(gif_ids)
+    other_media_count = len(other_media_ids)
+    
     media_shares_dict = {
         k: {"count": int(v), "pct": pct(int(v), total)}
         for k, v in media_counter.items()
@@ -215,6 +228,20 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
             "media": {
                 "count": media_msgs_count,
                 "pct": pct(media_msgs_count, total)
+            },
+            "media_breakdown": {
+                "photo": {
+                    "count": photo_count,
+                    "pct": pct(photo_count, media_msgs_count)
+                },
+                "gif": {
+                    "count": gif_count,
+                    "pct": pct(gif_count, media_msgs_count)
+                },
+                "other": {
+                    "count": other_media_count,
+                    "pct": pct(other_media_count, media_msgs_count)
+                }
             }
         },
         "by_day": dict(sorted(by_day.items())),

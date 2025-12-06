@@ -343,6 +343,18 @@
   }
 
   // KPI
+  const mediaBreakdown = summary.media_breakdown || {
+    photo: {count: 0, pct: 0},
+    gif: {count: 0, pct: 0},
+    other: {count: 0, pct: 0}
+  };
+  const photoCount = Number(mediaBreakdown.photo?.count || 0);
+  const photoPct = Number(mediaBreakdown.photo?.pct || 0).toFixed(2);
+  const gifCount = Number(mediaBreakdown.gif?.count || 0);
+  const gifPct = Number(mediaBreakdown.gif?.pct || 0).toFixed(2);
+  const otherMediaCount = Number(mediaBreakdown.other?.count || 0);
+  const otherMediaPct = Number(mediaBreakdown.other?.pct || 0).toFixed(2);
+  
   const kpiEl = document.getElementById('kpi');
   if (kpiEl) {
     kpiEl.innerHTML = [
@@ -351,11 +363,19 @@
       ["Редактировалось", edited, pct(edited)],
       ["С реакциями", react, reactPct],
       ["Медиа", media, mediaPct],
+      ["Фото", photoCount, photoPct],
+      ["Гифки", gifCount, gifPct],
+      ["Иное", otherMediaCount, otherMediaPct],
     ].map(([name,val,perc]) => `
       <div class="card">
         <div class="kpi">${Number(val).toLocaleString('ru-RU')}</div>
         <div class="muted">${name}${perc!==null ? ` <span class="pct">(${perc}%)</span>` : ""}</div>
       </div>`).join("");
+    const note = document.createElement('div');
+    note.className = 'muted';
+    note.style.cssText = 'grid-column: 1 / -1; margin-top: 8px; font-size: 11px; line-height: 1.4;';
+    note.textContent = 'Примечание: проценты для ответов, редактирования и реакций рассчитываются от общего количества сообщений. Проценты для фото, гифок и иного — от общего количества медиа.';
+    kpiEl.appendChild(note);
   }
   
   // ----- Таблицы -----
