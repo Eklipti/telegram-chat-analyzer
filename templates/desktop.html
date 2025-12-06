@@ -453,18 +453,18 @@
   // ----- Media shares -----
   (function(){
     const flags = data.media_shares || {};
-    const order = [
-      "photo", "video", "audio_file", "voice_message", "video_message",
-      "sticker", "animation (GIF)", "document", "poll", "contact",
-      "location", "game", "other"
-    ];
     const tb = document.querySelector('#tblMedia tbody');
     if (!tb) return;
-    tb.innerHTML = order.filter(k => k in flags).map(k => {
-      const v = flags[k] || {};
-      const pctVal = typeof v.pct === "number" ? v.pct.toFixed(2) : (v.pct || "0.00");
-      return `<tr><td>${k}</td><td>${v.count ?? 0}</td><td>${pctVal}%</td></tr>`;
-    }).join("");
+    const items = Object.entries(flags)
+      .map(([k, v]) => ({
+        key: k,
+        count: v.count ?? 0,
+        pct: typeof v.pct === "number" ? v.pct.toFixed(2) : (v.pct || "0.00")
+      }))
+      .sort((a, b) => b.count - a.count);
+    tb.innerHTML = items.map(item => 
+      `<tr><td>${item.key}</td><td>${item.count}</td><td>${item.pct}%</td></tr>`
+    ).join("");
   })();
   
   // ----- Poll creators (top-3) -----

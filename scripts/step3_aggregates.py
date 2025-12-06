@@ -199,7 +199,7 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
     other_media_count = len(other_media_ids)
     
     media_shares_dict = {
-        k: {"count": int(v), "pct": pct(int(v), total)}
+        k: {"count": int(v), "pct": pct(int(v), media_msgs_count)}
         for k, v in media_counter.items()
     }
 
