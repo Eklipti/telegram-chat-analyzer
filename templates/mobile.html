@@ -173,20 +173,37 @@
   const data = JSON.parse(document.getElementById('DATA').textContent);
   
   // 2. Достаем данные из "плоской" структуры
-  const summary = data.summary || {total_messages:0, replies:0, edited_msgs:0, messages_with_reactions:0};
+  const summary = data.summary || {
+    total_messages:0, 
+    replies:{count:0, pct:0}, 
+    edited_msgs:0, 
+    messages_with_reactions:{count:0, pct:0},
+    media:{count:0, pct:0}
+  };
   const daily = data.by_day || {};
   const hourly = data.by_hour || {};
   const top = data.top_authors || [];
   
   const total = Number(summary.total_messages || 0);
-  const replies = Number(summary.replies || 0);
+  const replies = typeof summary.replies === 'object' && summary.replies !== null 
+    ? Number(summary.replies.count || 0) 
+    : Number(summary.replies || 0);
+  const repliesPct = typeof summary.replies === 'object' && summary.replies !== null
+    ? Number(summary.replies.pct || 0).toFixed(2)
+    : (total ? (replies/total*100).toFixed(2) : "0.00");
   const edited  = Number(summary.edited_msgs || 0);
-  const react   = Number(summary.messages_with_reactions || 0);
-  
-  // 3. media_shares теперь - это "плоский" словарь
-  const media_shares = data.media_shares || {};
-  const withPhoto = Number((media_shares.photo && media_shares.photo.count) || 0);
-  const withFile  = Number((media_shares.document && media_shares.document.count) || 0);
+  const react = typeof summary.messages_with_reactions === 'object' && summary.messages_with_reactions !== null
+    ? Number(summary.messages_with_reactions.count || 0)
+    : Number(summary.messages_with_reactions || 0);
+  const reactPct = typeof summary.messages_with_reactions === 'object' && summary.messages_with_reactions !== null
+    ? Number(summary.messages_with_reactions.pct || 0).toFixed(2)
+    : (total ? (react/total*100).toFixed(2) : "0.00");
+  const media = typeof summary.media === 'object' && summary.media !== null
+    ? Number(summary.media.count || 0)
+    : 0;
+  const mediaPct = typeof summary.media === 'object' && summary.media !== null
+    ? Number(summary.media.pct || 0).toFixed(2)
+    : "0.00";
   
   const pct = (v)=> total ? (v/total*100).toFixed(2) : "0.00";
 
@@ -330,11 +347,10 @@
   if (kpiEl) {
     kpiEl.innerHTML = [
       ["Всего", total, null],
-      ["Ответов", replies, pct(replies)],
+      ["Ответов", replies, repliesPct],
       ["Редактировалось", edited, pct(edited)],
-      ["С реакциями", react, pct(react)],
-      ["С фото", withPhoto, pct(withPhoto)],
-      ["С файлами", withFile, pct(withFile)],
+      ["С реакциями", react, reactPct],
+      ["Медиа", media, mediaPct],
     ].map(([name,val,perc]) => `
       <div class="card">
         <div class="kpi">${Number(val).toLocaleString('ru-RU')}</div>

@@ -26,14 +26,17 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
     data = utils.load_json(input_0)
     msgs = data.get("messages") or []
     chat_id = data.get("id", "unknown_chat_id")
-    total = len(msgs)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     by_day: Dict[str,int] = Counter()
     by_hour: Dict[int,int] = Counter()
     by_author: Dict[str,int] = Counter()
     name_by_id: Dict[str,str] = {}
-    replies = edited = react_msgs = 0
+    message_ids: set[int] = set()
+    reply_ids: set[int] = set()
+    edited_ids: set[int] = set()
+    react_ids: set[int] = set()
+    media_ids: set[int] = set()
     id_to_parent: Dict[int, Optional[int]] = {}
     id_to_msg: Dict[int, Dict[str, Any]] = {}
     root_cache: Dict[int, int] = {}
@@ -45,14 +48,39 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
     media_counter: Dict[str,int] = Counter()
     polls_by_author: Dict[str,int] = Counter()
 
-    # --- проход #1 ---
     for m in msgs:
+        msg_type = m.get("type")
+        if msg_type != "message":
+            continue
+        
         meta = m.get("meta_norm", {})
         mid = m.get("id")
         if isinstance(mid, int):
+            message_ids.add(mid)
             id_to_msg[mid] = m
             pid = m.get("reply_to_message_id")
             id_to_parent[mid] = pid if isinstance(pid, int) else None
+            if isinstance(pid, int):
+                reply_ids.add(mid)
+
+        if "edited" in m or "edited_unixtime" in m or meta.get("edited_norm"):
+            if isinstance(mid, int):
+                edited_ids.add(mid)
+
+        if "reactions" in m:
+            if isinstance(mid, int):
+                react_ids.add(mid)
+
+        media_cat = meta.get("media_cat")
+        if media_cat is not None:
+            if isinstance(mid, int):
+                media_ids.add(mid)
+            if isinstance(media_cat, str):
+                media_counter[media_cat] += 1
+        if media_cat == "poll":
+            fid = m.get("from_id")
+            if fid:
+                polls_by_author[str(fid)] += 1
 
         fid = m.get("from_id")
         if fid:
@@ -71,17 +99,6 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
                 by_hour[h] += 1
             except Exception:
                 pass
-
-        if "reply_to_message_id" in m: replies += 1
-        if meta.get("edited_norm"): edited += 1
-        if "reactions" in m: react_msgs += 1
-        
-        media_cat = meta.get("media_cat")
-        if isinstance(media_cat, str):
-            media_counter[media_cat] += 1
-        if media_cat == "poll":
-            if fid:
-                polls_by_author[str(fid)] += 1
 
         reactions = m.get("reactions")
         total_r_for_msg = 0
@@ -112,6 +129,8 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
         return r
 
     for m in msgs:
+        if m.get("type") != "message":
+            continue
         mid = m.get("id")
         fid = m.get("from_id")
         if not isinstance(mid, int): continue
@@ -160,6 +179,12 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
     def pct(n: int, tot: int) -> float:
         return round((n / tot * 100.0), 2) if tot else 0.0
     
+    total = len(message_ids)
+    replies_count = len(reply_ids)
+    edited_count = len(edited_ids)
+    react_msgs_count = len(react_ids)
+    media_msgs_count = len(media_ids)
+    
     media_shares_dict = {
         k: {"count": int(v), "pct": pct(int(v), total)}
         for k, v in media_counter.items()
@@ -178,9 +203,19 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
         
         "summary": {
             "total_messages": total,
-            "replies": replies,
-            "edited_msgs": edited,
-            "messages_with_reactions": react_msgs,
+            "replies": {
+                "count": replies_count,
+                "pct": pct(replies_count, total)
+            },
+            "edited_msgs": edited_count,
+            "messages_with_reactions": {
+                "count": react_msgs_count,
+                "pct": pct(react_msgs_count, total)
+            },
+            "media": {
+                "count": media_msgs_count,
+                "pct": pct(media_msgs_count, total)
+            }
         },
         "by_day": dict(sorted(by_day.items())),
         "by_hour": dict(sorted(by_hour.items())),
