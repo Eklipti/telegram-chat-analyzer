@@ -83,28 +83,17 @@ def normalize_json(input_path: Path, output_dir: Optional[Path]) -> Path:
         normalized_data["text_plain"] = utils.flatten_text(m.get("text"))
 
         media_cat = None
+        media_type = m.get("media_type")
         
-        if isinstance(m.get("poll"), dict):
-            media_cat = "poll"
-        elif m.get("sticker_emoji"):
-            media_cat = "sticker"
-        elif "photo" in m:
-            media_cat = "photo"
-        elif "file" in m:
-            media_cat = "document"
+        if media_type not in (None, ""):
+            media_cat = MEDIA_MAP.get(str(media_type), "other")
         else:
-            try:
-                dur = m.get("duration_seconds")
-                if dur is not None and float(dur) > 0:
-                    media_cat = "audio_video_other"
-            except Exception:
-                pass
-        
-        # Если не определили по полям, пробуем media_type
-        if media_cat is None:
-            media_type = m.get("media_type")
-            if media_type not in (None, ""):
-                media_cat = MEDIA_MAP.get(str(media_type), "other")
+            if isinstance(m.get("poll"), dict):
+                media_cat = "poll"
+            elif m.get("sticker_emoji"):
+                media_cat = "sticker"
+            elif "photo" in m:
+                media_cat = "photo"
         
         normalized_data["media_cat"] = media_cat
 
