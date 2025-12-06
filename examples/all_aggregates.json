@@ -1,133 +1,138 @@
 {
-  "chat_id": 123456789,
-  "source_file_path": "C:\\temp\\TelegramChatAnalyticsPipeline\\telegram\\exports\\processed_json\\raw[0].json",
-  "source_file_name": "raw[0].json",
-  "generation_timestamp": 1763368251,
+  "chat_id": 9999999999,
+  "source_file_path": "D:\\Progs&Projects\\!Product\\Telegram Chat Analyzer\\telegram\\exports\\processed_json\\example[0].json",
+  "source_file_name": "example[0].json",
+  "generation_timestamp": 1765019873,
   "summary": {
-    "total_messages": 7,
-    "replies": 2,
-    "edited_msgs": 4,
-    "messages_with_reactions": 4
+    "total_messages": 12,
+    "replies": {
+      "count": 4,
+      "pct": 33.33
+    },
+    "edited_msgs": 5,
+    "messages_with_reactions": {
+      "count": 5,
+      "pct": 41.67
+    },
+    "media": {
+      "count": 0,
+      "pct": 0.0
+    },
+    "media_breakdown": {
+      "photo": {
+        "count": 0,
+        "pct": 0.0
+      },
+      "gif": {
+        "count": 0,
+        "pct": 0.0
+      },
+      "other": {
+        "count": 0,
+        "pct": 0.0
+      }
+    }
   },
   "by_day": {
-    "2024-10-03": 1,
-    "2024-10-04": 3,
-    "2024-10-05": 3
+    "2025-10-18": 12
   },
   "by_hour": {
-    "3": 5,
-    "15": 1,
-    "21": 1
+    "3": 12
   },
   "top_authors": [
     {
-      "user_hash": "afecc820c7",
-      "username": "АДМИН",
-      "count": 3
+      "from_id": "userA123456789",
+      "username": "Пользователь A",
+      "count": 7
     },
     {
-      "user_hash": "90b43dbac6",
-      "username": "УЧАСТНИК2",
-      "count": 1
-    },
-    {
-      "user_hash": "7705dc6af6",
-      "username": "УЧАСТНИК3",
-      "count": 1
+      "from_id": "userB987654321",
+      "username": "Пользователь B",
+      "count": 5
     }
   ],
   "threads_top5": [
     {
-      "root_id": 3,
-      "size": 2,
-      "username": "АДМИН",
-      "date_norm": "2024-10-04T03:11:05-05:00",
-      "text_preview": "https://",
+      "root_id": 45788,
+      "size": 5,
+      "username": "Пользователь B",
+      "date_norm": "2025-10-18T03:14:02+05:00",
+      "text_preview": "[Скрытый текст, 73 симв.]",
       "unique_participants": 2
     },
     {
-      "root_id": 6,
-      "size": 2,
-      "username": "АДМИН",
-      "date_norm": "2024-10-05T03:01:08-05:00",
-      "text_preview": "какое-то описание к некому файлу",
-      "unique_participants": 2
+      "root_id": 45781,
+      "size": 1,
+      "username": "Пользователь B",
+      "date_norm": "2025-10-18T03:13:07+05:00",
+      "text_preview": "[Скрытый текст, 3 симв.]",
+      "unique_participants": 1
     },
     {
-      "root_id": 1,
+      "root_id": 45782,
       "size": 1,
-      "username": "",
-      "date_norm": "2024-10-03T21:06:36-05:00",
+      "username": "Пользователь A",
+      "date_norm": "2025-10-18T03:13:07+05:00",
+      "text_preview": "[Скрытый текст, 11 симв.]",
+      "unique_participants": 1
+    },
+    {
+      "root_id": 45783,
+      "size": 1,
+      "username": "Пользователь A",
+      "date_norm": "2025-10-18T03:13:17+05:00",
       "text_preview": "",
-      "unique_participants": 0
+      "unique_participants": 1
     },
     {
-      "root_id": 4,
+      "root_id": 45784,
       "size": 1,
-      "username": "",
-      "date_norm": "2024-10-04T03:12:11-05:00",
+      "username": "Пользователь A",
+      "date_norm": "2025-10-18T03:13:18+05:00",
       "text_preview": "",
-      "unique_participants": 0
-    },
-    {
-      "root_id": 7,
-      "size": 1,
-      "username": "АДМИН",
-      "date_norm": "2024-10-05T03:01:25-05:00",
-      "text_preview": "https://",
       "unique_participants": 1
     }
   ],
   "emoji_top5": [
     {
-      "emoji": "👍",
-      "count": 49
+      "emoji": "❤‍🔥",
+      "count": 4
     },
     {
-      "emoji": "❤",
-      "count": 11
+      "emoji": "🔥",
+      "count": 1
     }
   ],
   "top_reacted_messages_top3": [
     {
-      "id": 6,
-      "reactions_total": 33,
-      "username": "АДМИН",
-      "date_norm": "2024-10-05T03:01:08-05:00",
-      "text_preview": "какое-то описание к некому файлу"
+      "id": 45783,
+      "reactions_total": 1,
+      "username": "Пользователь A",
+      "date_norm": "2025-10-18T03:13:17+05:00",
+      "text_preview": ""
     },
     {
-      "id": 7,
-      "reactions_total": 13,
-      "username": "АДМИН",
-      "date_norm": "2024-10-05T03:01:25-05:00",
-      "text_preview": "https://"
+      "id": 45784,
+      "reactions_total": 1,
+      "username": "Пользователь A",
+      "date_norm": "2025-10-18T03:13:18+05:00",
+      "text_preview": ""
     },
     {
-      "id": 8,
-      "reactions_total": 8,
-      "username": "УЧАСТНИК3",
-      "date_norm": "2024-10-05T03:01:45-05:00",
-      "text_preview": "ТЕКСТ КАПСОМ"
+      "id": 45786,
+      "reactions_total": 1,
+      "username": "Пользователь A",
+      "date_norm": "2025-10-18T03:13:39+05:00",
+      "text_preview": "[Скрытый текст, 47 симв.]"
     }
   ],
   "reactions_by_author_top5": [
     {
-      "user_hash": "afecc820c7",
-      "username": "АДМИН",
-      "total_reactions": 52
-    },
-    {
-      "user_hash": "7705dc6af6",
-      "username": "УЧАСТНИК3",
-      "total_reactions": 8
+      "from_id": "userA123456789",
+      "username": "Пользователь A",
+      "total_reactions": 5
     }
   ],
-  "media_shares": {
-    "photo": {
-      "count": 1,
-      "pct": 14.29
-    }
-  },
+  "media_shares": {},
   "poll_creators_top3": []
 }

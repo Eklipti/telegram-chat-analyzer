@@ -13,12 +13,7 @@
       "action": "join_group_by_link",
       "inviter": "Группа",
       "text": "",
-      "text_entities": [],
-      "meta_norm": {
-        "date_norm": "2025-10-18T03:12:52+05:00",
-        "text_plain": "",
-        "media_cat": null
-      }
+      "text_entities": []
     },
     {
       "id": 45781,
@@ -33,12 +28,7 @@
           "type": "plain",
           "text": "[Скрытый текст, 3 симв.]"
         }
-      ],
-      "meta_norm": {
-        "date_norm": "2025-10-18T03:13:07+05:00",
-        "text_plain": "[Скрытый текст, 3 симв.]",
-        "media_cat": null
-      }
+      ]
     },
     {
       "id": 45782,
@@ -53,12 +43,7 @@
           "type": "plain",
           "text": "[Скрытый текст, 11 симв.]"
         }
-      ],
-      "meta_norm": {
-        "date_norm": "2025-10-18T03:13:07+05:00",
-        "text_plain": "[Скрытый текст, 11 симв.]",
-        "media_cat": null
-      }
+      ]
     },
     {
       "id": 45783,
@@ -84,13 +69,7 @@
             }
           ]
         }
-      ],
-      "meta_norm": {
-        "date_norm": "2025-10-18T03:13:17+05:00",
-        "edited_norm": "2025-10-17T21:46:17+05:00",
-        "text_plain": "",
-        "media_cat": null
-      }
+      ]
     },
     {
       "id": 45784,
@@ -116,13 +95,7 @@
             }
           ]
         }
-      ],
-      "meta_norm": {
-        "date_norm": "2025-10-18T03:13:18+05:00",
-        "edited_norm": "2025-10-17T21:46:18+05:00",
-        "text_plain": "",
-        "media_cat": null
-      }
+      ]
     },
     {
       "id": 45785,
@@ -137,12 +110,7 @@
           "type": "plain",
           "text": "[Скрытый текст, 41 симв.]"
         }
-      ],
-      "meta_norm": {
-        "date_norm": "2025-10-18T03:13:31+05:00",
-        "text_plain": "[Скрытый текст, 41 симв.]",
-        "media_cat": null
-      }
+      ]
     },
     {
       "id": 45786,
@@ -173,13 +141,7 @@
             }
           ]
         }
-      ],
-      "meta_norm": {
-        "date_norm": "2025-10-18T03:13:39+05:00",
-        "edited_norm": "2025-10-17T21:14:10+05:00",
-        "text_plain": "[Скрытый текст, 47 симв.]",
-        "media_cat": null
-      }
+      ]
     },
     {
       "id": 45787,
@@ -194,12 +156,7 @@
           "type": "plain",
           "text": "[Скрытый текст, 37 симв.]"
         }
-      ],
-      "meta_norm": {
-        "date_norm": "2025-10-18T03:13:52+05:00",
-        "text_plain": "[Скрытый текст, 37 симв.]",
-        "media_cat": null
-      }
+      ]
     },
     {
       "id": 45788,
@@ -214,12 +171,7 @@
           "type": "plain",
           "text": "[Скрытый текст, 73 симв.]"
         }
-      ],
-      "meta_norm": {
-        "date_norm": "2025-10-18T03:14:02+05:00",
-        "text_plain": "[Скрытый текст, 73 симв.]",
-        "media_cat": null
-      }
+      ]
     },
     {
       "id": 45789,
@@ -246,13 +198,7 @@
             }
           ]
         }
-      ],
-      "meta_norm": {
-        "date_norm": "2025-10-18T03:15:14+05:00",
-        "edited_norm": "2025-10-17T21:46:21+05:00",
-        "text_plain": "",
-        "media_cat": null
-      }
+      ]
     },
     {
       "id": 45790,
@@ -268,12 +214,7 @@
           "type": "plain",
           "text": "[Скрытый текст, 11 симв.]"
         }
-      ],
-      "meta_norm": {
-        "date_norm": "2025-10-18T03:15:55+05:00",
-        "text_plain": "[Скрытый текст, 11 симв.]",
-        "media_cat": null
-      }
+      ]
     },
     {
       "id": 45791,
@@ -300,13 +241,7 @@
             }
           ]
         }
-      ],
-      "meta_norm": {
-        "date_norm": "2025-10-18T03:16:24+05:00",
-        "edited_norm": "2025-10-17T21:46:23+05:00",
-        "text_plain": "",
-        "media_cat": null
-      }
+      ]
     },
     {
       "id": 45792,
@@ -322,21 +257,7 @@
           "type": "plain",
           "text": "[Скрытый текст, 23 симв.]"
         }
-      ],
-      "meta_norm": {
-        "date_norm": "2025-10-18T03:16:47+05:00",
-        "text_plain": "[Скрытый текст, 23 симв.]",
-        "media_cat": null
-      }
-    }
-  ],
-  "meta": [
-    {
-      "by_normalize": {
-        "applied_shift_hours": 5,
-        "note": "Созданы поля 'meta_norm' с примененным сдвигом +5",
-        "messages_with_date_norm": 13
-      }
+      ]
     }
   ]
 }

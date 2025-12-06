@@ -29,17 +29,19 @@
     ```
 
 2.  Создайте и активируйте виртуальное окружение:
+
     ```sh
     python -m venv venv
     ```
-2.1 Если делаете в cmd:
-    ```cmd
-    .venv\Scripts\activate.bat
-    ```
-2.2 Если делаете в PowerShell:
-    ```PowerShell
-    .\.venv\Scripts\Activate.ps1
-    ```
+
+    2.1 Если делаете в cmd:
+
+        .venv\Scripts\activate.bat
+        
+
+    2.2 Если делаете в PowerShell:
+
+        .\.venv\Scripts\Activate.ps1
 
 3.  Установите зависимости:
     ```sh
