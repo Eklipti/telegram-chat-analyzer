@@ -1,0 +1,260 @@
+{
+  "name": "ИМЯ ЧАТА",
+  "type": "private_supergroup",
+  "id": 123456789,
+  "messages": [
+    {
+      "id": 1,
+      "type": "service",
+      "date": "2024-10-04T08:06:36",
+      "date_unixtime": "1728007596",
+      "actor": "ИМЯ ЧАТА",
+      "actor_id": "channel123456789",
+      "action": "create_channel",
+      "title": "ИМЯ ЧАТА.",
+      "text": "",
+      "text_entities": [],
+      "meta_norm": {
+        "date_norm": "2024-10-03T21:06:36-05:00",
+        "hour_norm": 21,
+        "dow_norm": 4,
+        "edited_norm": null,
+        "text_plain": "",
+        "media_cat": null,
+        "user_hash": null
+      }
+    },
+    {
+      "id": 3,
+      "type": "message",
+      "date": "2024-10-04T14:11:05",
+      "date_unixtime": "1728029465",
+      "edited": "2024-10-04T18:29:53",
+      "edited_unixtime": "1728044993",
+      "from": "АДМИН",
+      "from_id": "channel123456789",
+      "forwarded_from": "АДМИН",
+      "saved_from": "АДМИН",
+      "text": [
+        {
+          "type": "link",
+          "text": "https://"
+        }
+      ],
+      "text_entities": [
+        {
+          "type": "link",
+          "text": "https://"
+        }
+      ],
+      "reactions": [
+        {
+          "type": "emoji",
+          "count": 6,
+          "emoji": "👍"
+        }
+      ],
+      "meta_norm": {
+        "date_norm": "2024-10-04T03:11:05-05:00",
+        "hour_norm": 3,
+        "dow_norm": 5,
+        "edited_norm": "2024-10-04T07:29:53-05:00",
+        "text_plain": "https://",
+        "media_cat": null,
+        "user_hash": "afecc820c7"
+      }
+    },
+    {
+      "id": 4,
+      "type": "service",
+      "date": "2024-10-04T14:12:11",
+      "date_unixtime": "1728029531",
+      "actor": "УЧАСТНИК1",
+      "actor_id": "user123456789",
+      "action": "invite_members",
+      "members": [
+        "УЧАСТНИК1"
+      ],
+      "text": "",
+      "text_entities": [],
+      "meta_norm": {
+        "date_norm": "2024-10-04T03:12:11-05:00",
+        "hour_norm": 3,
+        "dow_norm": 5,
+        "edited_norm": null,
+        "text_plain": "",
+        "media_cat": null,
+        "user_hash": null
+      }
+    },
+    {
+      "id": 5,
+      "type": "message",
+      "date": "2024-10-05T02:11:57",
+      "date_unixtime": "1728072717",
+      "from": "УЧАСТНИК2",
+      "from_id": "user123450009",
+      "reply_to_message_id": 3,
+      "text": "Сообщение с эмодзи 😅. В два предложения.",
+      "text_entities": [
+        {
+          "type": "plain",
+          "text": "Сообщение с эмодзи 😅. В два предложения."
+        }
+      ],
+      "meta_norm": {
+        "date_norm": "2024-10-04T15:11:57-05:00",
+        "hour_norm": 15,
+        "dow_norm": 5,
+        "edited_norm": null,
+        "text_plain": "Сообщение с эмодзи 😅. В два предложения.",
+        "media_cat": null,
+        "user_hash": "90b43dbac6"
+      }
+    },
+    {
+      "id": 6,
+      "type": "message",
+      "date": "2024-10-05T14:01:08",
+      "date_unixtime": "1728115268",
+      "edited": "2024-10-05T14:01:23",
+      "edited_unixtime": "1728115283",
+      "from": "АДМИН",
+      "from_id": "channel123456789",
+      "forwarded_from": "АДМИН",
+      "saved_from": "АДМИН",
+      "photo": "(File not included. Change data exporting settings to download.)",
+      "photo_file_size": 4113,
+      "width": 260,
+      "height": 157,
+      "text": "какое-то описание к некому файлу",
+      "text_entities": [
+        {
+          "type": "plain",
+          "text": "какое-то описание к некому файлу"
+        }
+      ],
+      "reactions": [
+        {
+          "type": "emoji",
+          "count": 33,
+          "emoji": "👍"
+        }
+      ],
+      "meta_norm": {
+        "date_norm": "2024-10-05T03:01:08-05:00",
+        "hour_norm": 3,
+        "dow_norm": 6,
+        "edited_norm": "2024-10-05T03:01:23-05:00",
+        "text_plain": "какое-то описание к некому файлу",
+        "media_cat": "photo",
+        "user_hash": "afecc820c7"
+      }
+    },
+    {
+      "id": 7,
+      "type": "message",
+      "date": "2024-10-05T14:01:25",
+      "date_unixtime": "1728115285",
+      "edited": "2024-10-05T14:08:13",
+      "edited_unixtime": "1728115693",
+      "from": "АДМИН",
+      "from_id": "channel123456789",
+      "forwarded_from": "АДМИН",
+      "saved_from": "АДМИН",
+      "text": [
+        {
+          "type": "link",
+          "text": "https://"
+        }
+      ],
+      "text_entities": [
+        {
+          "type": "link",
+          "text": "https://"
+        }
+      ],
+      "reactions": [
+        {
+          "type": "emoji",
+          "count": 11,
+          "emoji": "❤"
+        },
+        {
+          "type": "emoji",
+          "count": 2,
+          "emoji": "👍"
+        }
+      ],
+      "meta_norm": {
+        "date_norm": "2024-10-05T03:01:25-05:00",
+        "hour_norm": 3,
+        "dow_norm": 6,
+        "edited_norm": "2024-10-05T03:08:13-05:00",
+        "text_plain": "https://",
+        "media_cat": null,
+        "user_hash": "afecc820c7"
+      }
+    },
+    {
+      "id": 8,
+      "type": "message",
+      "date": "2024-10-05T14:01:45",
+      "date_unixtime": "1728115305",
+      "edited": "2024-10-05T14:05:14",
+      "edited_unixtime": "1728115514",
+      "from": "УЧАСТНИК3",
+      "from_id": "user281976542",
+      "reply_to_message_id": 6,
+      "text": "ТЕКСТ КАПСОМ",
+      "text_entities": [
+        {
+          "type": "plain",
+          "text": "ТЕКСТ КАПСОМ"
+        }
+      ],
+      "reactions": [
+        {
+          "type": "emoji",
+          "count": 8,
+          "emoji": "👍",
+          "recent": [
+            {
+              "from": "УЧАСТНИК4",
+              "from_id": "user123987564",
+              "date": "2025-05-26T18:46:23"
+            },
+            {
+              "from": "УЧАСТНИК5",
+              "from_id": "user21347865",
+              "date": "2024-11-19T13:19:46"
+            },
+            {
+              "from": "УЧАСТНИК2",
+              "from_id": "user123450009",
+              "date": "2024-10-08T11:14:29"
+            }
+          ]
+        }
+      ],
+      "meta_norm": {
+        "date_norm": "2024-10-05T03:01:45-05:00",
+        "hour_norm": 3,
+        "dow_norm": 6,
+        "edited_norm": "2024-10-05T03:05:14-05:00",
+        "text_plain": "ТЕКСТ КАПСОМ",
+        "media_cat": null,
+        "user_hash": "7705dc6af6"
+      }
+    }
+  ],
+  "meta": [
+    {
+      "by_normalize": {
+        "applied_shift_hours": -5,
+        "note": "Созданы поля 'meta_norm' с примененным сдвигом -5",
+        "messages_with_date_norm": 7
+      }
+    }
+  ]
+}

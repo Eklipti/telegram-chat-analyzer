@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Telegram Chat Report (MSK)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+  :root{
+    /* База */
+    --bg:#FFFFFF;
+    --surface:#FAFAFC;
+    --surface-2:#F4F5F7;
+    --text:#101316;
+    --text-muted:#6B7280;
+    --border:#E6E8EE;
+
+    /* Брендовая шкала */
+    --brand-50:#FFF1F5;
+    --brand-100:#FFE0EA;
+    --brand-200:#FFC1D2;
+    --brand-300:#FF9CB9;
+    --brand-400:#FF779F;
+    --brand-500:#FF4F86; /* основной */
+    --brand-600:#E83A73;
+    --brand-700:#CC2A5F;
+    --brand-800:#A61E4B;
+    --brand-900:#7A1538;
+
+    /* Статусы */
+    --success-500:#22C55E;
+    --warning-500:#F59E0B;
+    --danger-500:#EF4444;
+
+    /* Состояния */
+    --brand-hover:#E83A73;
+    --brand-pressed:#CC2A5F;
+    --focus-ring:#FF9CB9;
+
+    /* Для графиков */
+    --plot-bg:var(--surface-2);
+    --grid-strong:var(--border);
+  }
+
+  html,body{
+    margin:0; padding:0;
+    background:var(--bg); color:var(--text);
+    font:14px/1.5 Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+
+  header{
+    padding:24px 20px;
+    border-bottom:1px solid var(--border);
+    background:var(--surface);
+    position:sticky; top:0; z-index:10;
+  }
+
+  h1{ margin:0 0 4px; font-size:20px; color:var(--brand-500); }
+  h2{ margin:0 0 8px; font-size:18px; color:var(--brand-500); }
+
+  .wrap{ max-width:1100px; margin:0 auto; padding:20px; }
+  .cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; }
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+  .kpi{ font-size:24px; font-weight:700; color:var(--brand-600); }
+  .muted{ color:var(--text-muted); font-size:12px; }
+  .pct{ font-size:10px; margin-left:4px; color:var(--text-muted); }
+
+  canvas{ width:100%; height:320px; background:var(--surface); border:1px solid var(--border); border-radius:12px; }
+  .section{ margin-top:24px; scroll-margin-top: 84px; }
+
+  .tbl{ width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; background:var(--surface); border:1px solid var(--border); border-radius:12px; }
+  .tbl th, .tbl td{ border-bottom:1px solid var(--border); padding:8px 10px; text-align:left; }
+  .tbl th{ color:var(--text-muted); font-weight:600; }
+
+  pre{ white-space:pre-wrap; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 14px; overflow:auto; }
+  details{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 12px; }
+  details summary{ cursor:pointer; user-select:none; font-weight:600; }
+
+  .chip{ display:inline-block; padding:2px 8px; border-radius:999px; background:var(--surface); border:1px solid var(--border); color:var(--text); }
+
+  /* Навигация в хедере */
+  html { scroll-behavior: smooth; }
+  .nav { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
+  .nav a {
+    color: var(--brand-600);
+    text-decoration: none;
+    padding:6px 10px;
+    border-radius:8px;
+    border:1px solid transparent;
+    font-size:13px;
+  }
+  .nav a:hover   { color: var(--brand-hover);  background: var(--brand-50);  border-color: var(--brand-100); }
+  .nav a:active  { color: var(--brand-pressed); }
+  .nav a:focus   { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>Отчёт по чату</h1>
+    <div class="muted">Самодостаточный HTML</div>
+    <nav class="nav">
+      <a href="#kpi">Обзор</a>
+      <a href="#daily-sec">По дням</a>
+      <a href="#hourly-sec">По часам</a>
+      <a href="#top-authors">Топ-10</a>
+      <a href="#threads">Ветки</a>
+      <a href="#emoji">Эмодзи</a>
+      <a href="#rmsgs">Топ сообщения</a>
+      <a href="#rusers">Реакции по авторам</a>
+      <a href="#media">Медиа</a>
+      <a href="#polls">Опросы</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="kpi" class="cards section"></div>
+
+  <div class="section" id="daily-sec">
+    <h2>Динамика сообщений по дням</h2>
+    <canvas id="daily"></canvas>
+  </div>
+
+  <div class="section" id="hourly-sec">
+    <h2>Сообщения по часам</h2>
+    <canvas id="hourly"></canvas>
+  </div>
+
+  <div class="section" id="top-authors">
+    <h2>Топ-10 авторов</h2>
+    <table class="tbl" id="topAuthors">
+      <thead><tr><th>#</th><th>username</th><th>сообщений</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="section" id="threads">
+    <h2>Длина веток — топ-5</h2>
+    <table class="tbl" id="tblThreads">
+      <thead><tr><th>#</th><th>root_id</th><th>username</th><th>сообщений</th><th>участников</th><th>дата</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="section" id="emoji">
+    <h2>Топ эмодзи — топ-5</h2>
+    <table class="tbl" id="tblEmoji">
+      <thead><tr><th>#</th><th>emoji</th><th>использований</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="section" id="rmsgs">
+    <h2>Самые «реакционные» сообщения — топ-3</h2>
+    <table class="tbl" id="tblRMsgs">
+      <thead><tr><th>#</th><th>username</th><th>реакций</th><th>дата</th><th>фрагмент</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="section" id="rusers">
+    <h2>Кто собрал больше всего реакций — топ-5</h2>
+    <table class="tbl" id="tblRUsers">
+      <thead><tr><th>#</th><th>username</th><th>реакций всего</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="section" id="media">
+    <h2>Доли по типам медиа</h2>
+    <table class="tbl" id="tblMedia">
+      <thead><tr><th>тип</th><th>сообщений</th><th>доля</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="section" id="polls">
+    <h2>Топ создателей опросов — топ-3</h2>
+    <table class="tbl" id="tblPolls">
+      <thead><tr><th>#</th><th>username</th><th>опросов</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script id="DATA" type="application/json">__DATA_JSON__</script>
+
+<script>
+(function(){
+  // data теперь - это "плоский" объект
+  const data = JSON.parse(document.getElementById('DATA').textContent);
+  
+  // Достаем данные из "плоской" структуры
+  const summary = data.summary || {total_messages:0, replies:0, edited_msgs:0, messages_with_reactions:0};
+  const daily = data.by_day || {};
+  const hourly = data.by_hour || {};
+  const top = data.top_authors || [];
+  
+  const total = Number(summary.total_messages || 0);
+  const replies = Number(summary.replies || 0);
+  const edited  = Number(summary.edited_msgs || 0);
+  const react   = Number(summary.messages_with_reactions || 0);
+  
+  // media_shares теперь - это "плоский" словарь
+  const media_shares = data.media_shares || {};
+  const withPhoto = Number((media_shares.photo && media_shares.photo.count) || 0);
+  const withFile  = Number((media_shares.document && media_shares.document.count) || 0); 
+  
+  const pct = (v)=> total ? (v/total*100).toFixed(2) : "0.00";
+
+  // Цвета из CSS-переменных
+  const css = getComputedStyle(document.documentElement);
+  const COLOR_GRID        = (css.getPropertyValue('--border')     || '#E6E8EE').trim();
+  const COLOR_GRID_STRONG = (css.getPropertyValue('--grid-strong')|| '#E6E8EE').trim();
+  const COLOR_TEXT        = (css.getPropertyValue('--text-muted') || '#6B7280').trim();
+  const COLOR_LINE        = (css.getPropertyValue('--brand-500')  || '#FF4F86').trim();
+  const COLOR_RAYS        = (css.getPropertyValue('--brand-600')  || '#E83A73').trim();
+  const COLOR_CENTER      = (css.getPropertyValue('--surface')    || '#FAFAFC').trim();
+  const COLOR_PLOT_BG     = (css.getPropertyValue('--plot-bg')    || '#F4F5F7').trim();
+  
+  // ----- KPI -----
+  const kpi = [
+    ["Всего сообщений", total, null],
+    ["Ответов", replies, pct(replies)],
+    ["Отредактированных", edited, pct(edited)],
+    ["С реакциями", react, pct(react)],
+    ["С фото", withPhoto, pct(withPhoto)],
+    ["С файлами", withFile, pct(withFile)],
+  ];
+  const kpiRoot = document.getElementById('kpi');
+  if (kpiRoot) {
+    kpiRoot.innerHTML = kpi.map(([name,val,perc]) => `
+      <div class="card">
+        <div class="kpi">${Number(val).toLocaleString('ru-RU')}</div>
+        <div class="muted">${name}${perc!==null ? ` <span class="pct">(${perc}%)</span>` : ""}</div>
+      </div>`).join("");
+  }
+  
+  // ----- helpers -----
+  function drawAxes(ctx, W, H, margin){
+    ctx.strokeStyle = COLOR_GRID; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(margin, H-margin); ctx.lineTo(W-margin, H-margin);
+    ctx.moveTo(margin, margin);   ctx.lineTo(margin, H-margin);
+    ctx.stroke();
+  }
+  function scaleLinear(domainMin, domainMax, rangeMin, rangeMax){
+    const span = (domainMax-domainMin) || 1;
+    const k = (rangeMax-rangeMin)/span;
+    return (x)=> rangeMin + (x-domainMin)*k;
+  }
+  function niceMax(v){
+    if (v <= 0) return 1;
+    const p = Math.pow(10, Math.floor(Math.log10(v)));
+    return Math.ceil(v/p)*p;
+  }
+
+  // ----- Line Chart (daily) -----
+  (function(){
+    const c = document.getElementById('daily');
+    if (!c) return;
+    const labels = Object.keys(daily).sort();
+    const values = labels.map(d => daily[d]);
+    const ctx = c.getContext('2d');
+    const W = c.width = c.clientWidth * devicePixelRatio;
+    const H = c.height = c.clientHeight * devicePixelRatio;
+    const m = 50;
+    ctx.fillStyle = COLOR_PLOT_BG;
+    ctx.fillRect(m, m, W - 2*m, H - 2*m);
+    const maxY = niceMax(values.reduce((a,b)=>Math.max(a,b), 0));
+    const sx = scaleLinear(0, Math.max(labels.length-1,1), m, W-m);
+    const sy = scaleLinear(0, maxY, H-m, m);
+    ctx.strokeStyle = COLOR_GRID_STRONG; ctx.lineWidth = 1;
+    const gridLines = 5;
+    for (let i=1;i<=gridLines;i++){
+      const y = sy(maxY*i/gridLines);
+      ctx.beginPath(); ctx.moveTo(m, y); ctx.lineTo(W-m, y); ctx.stroke();
+    }
+    drawAxes(ctx, W, H, m);
+    ctx.strokeStyle = COLOR_LINE; ctx.lineWidth = 2;
+    ctx.beginPath();
+    labels.forEach((_, i) => {
+      const x = sx(i), y = sy(values[i]);
+      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+    ctx.fillStyle = COLOR_TEXT; ctx.font = (12*devicePixelRatio)+"px system-ui";
+    const step = Math.ceil(labels.length/8);
+    labels.forEach((lab, i) => {
+      if (i % step !== 0 && i !== labels.length-1) return;
+      const x = sx(i);
+      ctx.fillText(lab, x-20, H - m + 18*devicePixelRatio);
+    });
+  })();
+
+  // ----- Clockface (hourly) -----
+  (function(){
+    const c = document.getElementById('hourly');
+    if (!c) return;
+    const labels = Array.from({length:24}, (_,h)=>String(h));
+    const values = labels.map(h => Number(hourly[h]||0));
+    const DPR = devicePixelRatio || 1;
+    const W = c.width  = c.clientWidth  * DPR;
+    const H = c.height = c.clientHeight * DPR;
+    const ctx = c.getContext('2d');
+    const cx = W/2, cy = H/2;
+    const Rmin = Math.min(W,H) * 0.22;
+    const Rmax = Math.min(W,H) * 0.46;
+    const step = (Math.PI*2) / 24;
+    const start = -Math.PI/2;
+    const maxV = Math.max(1, values.reduce((a,b)=>Math.max(a,b), 0));
+    ctx.strokeStyle = COLOR_GRID;
+    ctx.lineWidth = 1;
+    for (let i=1;i<=4;i++){
+      const r = Rmin + (Rmax-Rmin) * (i/4);
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+    }
+    ctx.strokeStyle = COLOR_GRID;
+    ctx.fillStyle   = COLOR_TEXT;
+    ctx.lineWidth = 1;
+    ctx.font = (12*DPR)+"px system-ui";
+    for (let h=0; h<24; h++){
+      const a = start + h*step;
+      const rTick0 = Rmax + 6*DPR;
+      const rTick1 = Rmax + (h%6===0 ? 16*DPR : 12*DPR);
+      const x0 = cx + Math.cos(a)*rTick0, y0 = cy + Math.sin(a)*rTick0;
+      const x1 = cx + Math.cos(a)*rTick1, y1 = cy + Math.sin(a)*rTick1;
+      ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+      const rLbl = Rmax + 24*DPR;
+      const xl = cx + Math.cos(a)*rLbl, yl = cy + Math.sin(a)*rLbl + 4*DPR;
+      const txt = String(h).padStart(2,"0");
+      ctx.fillText(txt, xl - 10*DPR, yl);
+    }
+    ctx.strokeStyle = COLOR_RAYS;
+    ctx.lineWidth = Math.max(4*DPR, Math.min(W,H)*0.02);
+    ctx.lineCap = "round";
+    for (let h=0; h<24; h++){
+      const v = values[h];
+      const a = start + h*step;
+      const r = Rmin + (Rmax - Rmin) * (v / maxV);
+      const x0 = cx + Math.cos(a)*Rmin, y0 = cy + Math.sin(a)*Rmin;
+      const x1 = cx + Math.cos(a)*r,    y1 = cy + Math.sin(a)*r;
+      ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+    }
+    ctx.fillStyle = COLOR_CENTER;
+    ctx.beginPath(); ctx.arc(cx, cy, Rmin-6*DPR, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = COLOR_TEXT;
+    ctx.font = (11*DPR)+"px system-ui";
+    ctx.fillText("max: " + maxV.toLocaleString('ru-RU'), cx - 28*DPR, cy + 4*DPR);
+  })();
+  
+  // ----- Top Authors (top-10) -----
+  (function(){
+    const tbody = document.querySelector('#topAuthors tbody');
+    if (!tbody) return;
+    tbody.innerHTML = (top || []).slice(0,10).map((row, idx) => {
+      let username = row.username || row.from_id || "";
+      let count = row.count || 0;
+      return `<tr><td>${idx+1}</td><td>${username}</td><td>${count} <span class="pct">(${pct(count)}%)</span></td></tr>`;
+    }).join("");
+  })();
+  
+  // ----- Threads (top-5) -----
+  (function(){
+    const rows = data.threads_top5 || [];
+    const tb = document.querySelector('#tblThreads tbody');
+    if (!tb) return;
+    tb.innerHTML = rows.map((r, i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td>${r.root_id ?? ""}</td>
+        <td>${r.username ?? ""}</td>
+        <td>${r.size ?? 0}</td>
+        <td>${r.unique_participants ?? 0}</td>
+        <td>${r.date_norm ?? ""}</td>
+      </tr>`).join("");
+  })();
+
+  // ----- Emoji (top-5) -----
+  (function(){
+    const rows = data.emoji_top5 || [];
+    const tb = document.querySelector('#tblEmoji tbody');
+    if (!tb) return;
+    tb.innerHTML = rows.map((r, i) => `
+      <tr><td>${i+1}</td><td>${r.emoji ?? ""}</td><td>${r.count ?? 0}</td></tr>`
+    ).join("");
+  })();
+  
+  // ----- Most reacted messages (top-3) -----
+  (function(){
+    const rows = data.top_reacted_messages_top3 || [];
+    const tb = document.querySelector('#tblRMsgs tbody');
+    if (!tb) return;
+    tb.innerHTML = rows.map((r, i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td>${r.username ?? ""}</td>
+        <td>${r.reactions_total ?? 0}</td>
+        <td>${r.date_norm ?? ""}</td>
+        <td>${(r.text_preview || "").replace(/</g,"&lt;")}</td>
+      </tr>`).join("");
+  })();
+
+  // ----- Reactions by author (top-5) -----
+  (function(){
+    const rows = data.reactions_by_author_top5 || [];
+    const tb = document.querySelector('#tblRUsers tbody');
+    if (!tb) return;
+    tb.innerHTML = rows.map((r, i) => `
+      <tr><td>${i+1}</td><td>${r.username ?? ""}</td><td>${r.total_reactions ?? 0}</td></tr>`
+    ).join("");
+  })();
+  
+  // ----- Media shares -----
+  (function(){
+    const flags = data.media_shares || {};
+    const order = [
+      "photo", "video", "audio_file", "voice_message", "video_message",
+      "sticker", "animation (GIF)", "document", "poll", "contact",
+      "location", "game", "other"
+    ];
+    const tb = document.querySelector('#tblMedia tbody');
+    if (!tb) return;
+    tb.innerHTML = order.filter(k => k in flags).map(k => {
+      const v = flags[k] || {};
+      const pctVal = typeof v.pct === "number" ? v.pct.toFixed(2) : (v.pct || "0.00");
+      return `<tr><td>${k}</td><td>${v.count ?? 0}</td><td>${pctVal}%</td></tr>`;
+    }).join("");
+  })();
+  
+  // ----- Poll creators (top-3) -----
+  (function(){
+    const rows = data.poll_creators_top3 || [];
+    const tb = document.querySelector('#tblPolls tbody');
+    if (!tb) return;
+    tb.innerHTML = rows.map((r, i) => `
+      <tr><td>${i+1}</td><td>${r.username ?? ""}</td><td>${r.polls ?? 0}</td></tr>`
+    ).join("");
+  })();
+  
+})();
+</script>
+</body>
+</html>

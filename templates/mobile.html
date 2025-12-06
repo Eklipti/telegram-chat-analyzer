@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Chat Report — Mobile (MSK)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+<style>
+  :root{
+    --bg:#FFFFFF; --surface:#FAFAFC; --surface-2:#F4F5F7;
+    --text:#101316; --text-muted:#6B7280; --border:#E6E8EE;
+
+    --brand-50:#FFF1F5; --brand-100:#FFE0EA; --brand-200:#FFC1D2;
+    --brand-300:#FF9CB9; --brand-400:#FF779F; --brand-500:#FF4F86;
+    --brand-600:#E83A73; --brand-700:#CC2A5F; --brand-800:#A61E4B; --brand-900:#7A1538;
+
+    --focus-ring:#FF9CB9;
+  }
+
+  html,body{
+    margin:0; padding:0;
+    background:var(--bg); color:var(--text);
+    font:15px/1.45 Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+
+  header{
+    padding:12px 16px 8px 16px;
+    border-bottom:1px solid var(--border);
+    background:var(--surface);
+    position:sticky; top:0; z-index:10;
+  }
+  h1{ margin:0; font-size:18px; color:var(--brand-600); }
+  h2{ margin:6px 0; font-size:16px; color:var(--brand-600); }
+
+  .wrap{ max-width:800px; margin:0 auto; padding:12px 12px calc(64px + env(safe-area-inset-bottom)); }
+  .cards{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px 12px; }
+  .kpi{ font-size:20px; font-weight:700; color:var(--brand-700); }
+  .muted{ color:var(--text-muted); font-size:12px; }
+  .pct{ font-size:10px; margin-left:4px; color:var(--text-muted); }
+
+  /* КАНВАСЫ: без фикс. высоты; управляем соотношением сторон + min-height */
+  canvas{ width:100%; height:auto; background:var(--surface); border:1px solid var(--border); border-radius:10px; display:block; }
+  #daily  { aspect-ratio: 16 / 10; min-height: 240px; max-height: 520px; }
+  #hourly { aspect-ratio: 1 / 1;   min-height: 260px; max-height: 560px; }
+
+  .section{ margin-top:16px; scroll-margin-top:72px; }
+
+  .table-wrap{ overflow-x:auto; -webkit-overflow-scrolling: touch; background:var(--surface); border:1px solid var(--border); border-radius:10px; }
+  .tbl{ width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; min-width:520px; }
+  .tbl th, .tbl td{ border-bottom:1px solid var(--border); padding:8px 10px; text-align:left; white-space:nowrap; }
+  .tbl th{ color:var(--text-muted); font-weight:600; }
+
+  pre{ white-space:pre-wrap; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px 12px; overflow:auto; font-size:13px; }
+
+  .mnav{
+    position:fixed; left:0; right:0; bottom:0;
+    background:var(--surface);
+    border-top:1px solid var(--border);
+    padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+    display:flex; gap:8px; justify-content:space-around;
+    z-index:20;
+  }
+  .mnav a{
+    flex:1; text-align:center; text-decoration:none;
+    color:var(--brand-700);
+    background:var(--brand-50);
+    border:1px solid var(--brand-100);
+    border-radius:10px;
+    padding:8px 6px;
+    font-size:12px;
+  }
+  .mnav a:active{ background:var(--brand-100); color:var(--brand-800); }
+  .mnav a:focus{ outline:2px solid var(--focus-ring); outline-offset:2px; }
+
+  html { scroll-behavior: smooth; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Отчёт — мобильная версия</h1>
+  <div class="muted">Офлайн, один файл</div>
+</header>
+
+<div class="wrap">
+  <div id="kpi" class="cards section"></div>
+
+  <div class="section" id="daily-sec">
+    <h2>По дням</h2>
+    <canvas id="daily"></canvas>
+  </div>
+
+  <div class="section" id="hourly-sec">
+    <h2>По часам</h2>
+    <canvas id="hourly"></canvas>
+  </div>
+
+  <div class="section" id="top-authors">
+    <h2>Топ-10 авторов</h2>
+    <div class="table-wrap">
+      <table class="tbl" id="topAuthors">
+        <thead><tr><th>#</th><th>username</th><th>сообщений</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="threads">
+    <h2>Ветки — топ-5</h2>
+    <div class="table-wrap">
+      <table class="tbl" id="tblThreads">
+        <thead><tr><th>#</th><th>root_id</th><th>username</th><th>сообщений</th><th>участников</th><th>дата</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="emoji">
+    <h2>Эмодзи — топ-5</h2>
+    <div class="table-wrap">
+      <table class="tbl" id="tblEmoji">
+        <thead><tr><th>#</th><th>emoji</th><th>использований</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="rmsgs">
+    <h2>Топ сообщения — топ-3</h2>
+    <div class="table-wrap">
+      <table class="tbl" id="tblRMsgs">
+        <thead><tr><th>#</th><th>username</th><th>реакций</th><th>дата</th><th>фрагмент</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="rusers">
+    <h2>Реакции по авторам — топ-5</h2>
+    <div class="table-wrap">
+      <table class="tbl" id="tblRUsers">
+        <thead><tr><th>#</th><th>username</th><th>реакций всего</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="media">
+    <h2>Медиа</h2>
+    <div class="table-wrap">
+      <table class="tbl" id="tblMedia">
+        <thead><tr><th>тип</th><th>сообщений</th><th>доля</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<nav class="mnav">
+  <a href="#kpi">Обзор</a>
+  <a href="#daily-sec">Дни</a>
+  <a href="#hourly-sec">Часы</a>
+  <a href="#top-authors">Топ</a>
+  <a href="#media">Медиа</a>
+</nav>
+
+<script id="DATA" type="application/json">__DATA_JSON__</script>
+
+<script>
+(function(){
+  // 1. data теперь - это "плоский" объект
+  const data = JSON.parse(document.getElementById('DATA').textContent);
+  
+  // 2. Достаем данные из "плоской" структуры
+  const summary = data.summary || {total_messages:0, replies:0, edited_msgs:0, messages_with_reactions:0};
+  const daily = data.by_day || {};
+  const hourly = data.by_hour || {};
+  const top = data.top_authors || [];
+  
+  const total = Number(summary.total_messages || 0);
+  const replies = Number(summary.replies || 0);
+  const edited  = Number(summary.edited_msgs || 0);
+  const react   = Number(summary.messages_with_reactions || 0);
+  
+  // 3. media_shares теперь - это "плоский" словарь
+  const media_shares = data.media_shares || {};
+  const withPhoto = Number((media_shares.photo && media_shares.photo.count) || 0);
+  const withFile  = Number((media_shares.document && media_shares.document.count) || 0);
+  
+  const pct = (v)=> total ? (v/total*100).toFixed(2) : "0.00";
+
+  // палитра
+  const css = getComputedStyle(document.documentElement);
+  const COLOR_GRID        = (css.getPropertyValue('--border')     || '#E6E8EE').trim();
+  const COLOR_GRID_STRONG = (css.getPropertyValue('--border')     || '#E6E8EE').trim();
+  const COLOR_TEXT        = (css.getPropertyValue('--text-muted') || '#6B7280').trim();
+  const COLOR_LINE        = (css.getPropertyValue('--brand-500')  || '#FF4F86').trim();
+  const COLOR_RAYS        = (css.getPropertyValue('--brand-600')  || '#E83A73').trim();
+  const COLOR_CENTER      = (css.getPropertyValue('--surface')    || '#FAFAFC').trim();
+  const COLOR_PLOT_BG     = (css.getPropertyValue('--surface-2')  || '#F4F5F7').trim();
+
+  // DPR и функция корректной установки физ. размеров канваса
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  function sizeCanvas(c){
+    const r = c.getBoundingClientRect();
+    const W = Math.max(1, Math.round(r.width  * DPR));
+    const H = Math.max(1, Math.round(r.height * DPR));
+    if (c.width !== W)  c.width  = W;
+    if (c.height !== H) c.height = H;
+    return { W, H };
+  }
+
+  // helpers
+  function drawAxes(ctx, W, H, margin){
+    ctx.strokeStyle = COLOR_GRID;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(margin, H-margin); ctx.lineTo(W-margin, H-margin);
+    ctx.moveTo(margin, margin);   ctx.lineTo(margin, H-margin);
+    ctx.stroke();
+  }
+  function scaleLinear(domainMin, domainMax, rangeMin, rangeMax){
+    const span = (domainMax-domainMin) || 1;
+    const k = (rangeMax-rangeMin)/span;
+    return (x)=> rangeMin + (x-domainMin)*k;
+  }
+  function niceMax(v){
+    if (v <= 0) return 1;
+    const p = Math.pow(10, Math.floor(Math.log10(v)));
+    return Math.ceil(v/p)*p;
+  }
+
+  function renderCharts(){
+    // ----- Line Chart (daily) -----
+    (function(){
+      const c = document.getElementById('daily');
+      if (!c) return;
+      const labels = Object.keys(daily).sort();
+      const values = labels.map(d => daily[d]);
+      const ctx = c.getContext('2d');
+      const { W, H } = sizeCanvas(c);
+      ctx.clearRect(0, 0, W, H);
+      const isNarrow = W < 520;
+      const m = isNarrow ? 26 : 36;
+      ctx.fillStyle = COLOR_PLOT_BG;
+      ctx.fillRect(m, m, W - 2*m, H - 2*m);
+      const maxY = niceMax(values.reduce((a,b)=>Math.max(a,b), 0));
+      const sx = scaleLinear(0, Math.max(labels.length-1,1), m, W-m);
+      const sy = scaleLinear(0, maxY, H-m, m);
+      ctx.strokeStyle = COLOR_GRID_STRONG; ctx.lineWidth = 1;
+      const gridLines = isNarrow ? 4 : 5;
+      for (let i=1;i<=gridLines;i++){
+        const y = sy(maxY*i/gridLines);
+        ctx.beginPath(); ctx.moveTo(m, y); ctx.lineTo(W-m, y); ctx.stroke();
+      }
+      drawAxes(ctx, W, H, m);
+      ctx.strokeStyle = COLOR_LINE; ctx.lineWidth = 2;
+      ctx.beginPath();
+      labels.forEach((_, i) => {
+        const x = sx(i), y = sy(values[i]);
+        if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+      ctx.stroke();
+      ctx.fillStyle = COLOR_TEXT; ctx.font = (11*DPR)+"px system-ui";
+      const step = Math.ceil(labels.length/(isNarrow ? 6 : 8));
+      labels.forEach((lab, i) => {
+        if (i % step !== 0 && i !== labels.length-1) return;
+        const x = sx(i);
+        ctx.fillText(lab, x-18, H - m + 16*DPR);
+      });
+    })();
+
+    // ----- Clockface (hourly) -----
+    (function(){
+      const c = document.getElementById('hourly');
+      if (!c) return;
+      const labels = Array.from({length:24}, (_,h)=>String(h));
+      const values = labels.map(h => Number(hourly[h]||0));
+      const ctx = c.getContext('2d');
+      const { W, H } = sizeCanvas(c);
+      ctx.clearRect(0, 0, W, H);
+      const cx = W/2, cy = H/2;
+      const Rmin = Math.min(W,H) * 0.22;
+      const Rmax = Math.min(W,H) * 0.44;
+      const step = (Math.PI*2) / 24;
+      const start = -Math.PI/2;
+      const maxV = Math.max(1, values.reduce((a,b)=>Math.max(a,b), 0));
+      ctx.strokeStyle = COLOR_GRID; ctx.lineWidth = 1;
+      for (let i=1;i<=3;i++){
+        const r = Rmin + (Rmax-Rmin) * (i/3);
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+      }
+      ctx.strokeStyle = COLOR_GRID;
+      ctx.fillStyle   = COLOR_TEXT;
+      ctx.lineWidth = 1;
+      ctx.font = (11*DPR)+"px system-ui";
+      for (let h=0; h<24; h+=2){
+        const a = start + h*step;
+        const rTick0 = Rmax + 4*DPR;
+        const rTick1 = Rmax + (h%6===0 ? 14*DPR : 10*DPR);
+        const x0 = cx + Math.cos(a)*rTick0, y0 = cy + Math.sin(a)*rTick0;
+        const x1 = cx + Math.cos(a)*rTick1, y1 = cy + Math.sin(a)*rTick1;
+        ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+        const rLbl = Rmax + 20*DPR;
+        const xl = cx + Math.cos(a)*rLbl, yl = cy + Math.sin(a)*rLbl + 4*DPR;
+        ctx.fillText(String(h).padStart(2,"0"), xl - 9*DPR, yl);
+      }
+      ctx.strokeStyle = COLOR_RAYS;
+      ctx.lineWidth = Math.max(3*DPR, Math.min(W,H)*0.018);
+      ctx.lineCap = "round";
+      for (let h=0; h<24; h++){
+        const v = values[h];
+        const a = start + h*step;
+        const r = Rmin + (Rmax - Rmin) * (v / maxV);
+        const x0 = cx + Math.cos(a)*Rmin, y0 = cy + Math.sin(a)*Rmin;
+        const x1 = cx + Math.cos(a)*r,    y1 = cy + Math.sin(a)*r;
+        ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+      }
+      ctx.fillStyle = COLOR_CENTER;
+      ctx.beginPath();
+      ctx.arc(cx, cy, Rmin-5*DPR, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = COLOR_TEXT; ctx.font = (10*DPR)+"px system-ui";
+      ctx.fillText("max: " + maxV.toLocaleString('ru-RU'), cx - 26*DPR, cy + 4*DPR);
+    })();
+  }
+
+  // KPI
+  const kpiEl = document.getElementById('kpi');
+  if (kpiEl) {
+    kpiEl.innerHTML = [
+      ["Всего", total, null],
+      ["Ответов", replies, pct(replies)],
+      ["Редактировалось", edited, pct(edited)],
+      ["С реакциями", react, pct(react)],
+      ["С фото", withPhoto, pct(withPhoto)],
+      ["С файлами", withFile, pct(withFile)],
+    ].map(([name,val,perc]) => `
+      <div class="card">
+        <div class="kpi">${Number(val).toLocaleString('ru-RU')}</div>
+        <div class="muted">${name}${perc!==null ? ` <span class="pct">(${perc}%)</span>` : ""}</div>
+      </div>`).join("");
+  }
+  
+  // ----- Таблицы -----
+  
+  // Top Authors
+  (function(){
+    const tb = document.querySelector('#topAuthors tbody');
+    if (!tb) return;
+    tb.innerHTML = (top || []).slice(0,10).map((row, idx) => {
+      let username = row.username || row.from_id || "";
+      let count = row.count || 0;
+      return `<tr><td>${idx+1}</td><td>${username}</td><td>${count} <span class="pct">(${pct(count)}%)</span></td></tr>`;
+    }).join("");
+  })();
+  
+  // Threads
+  (function(){
+    const rows = data.threads_top5 || [];
+    const tb = document.querySelector('#tblThreads tbody');
+    if (!tb) return;
+    tb.innerHTML = rows.map((r, i) => `
+      <tr><td>${i+1}</td><td>${r.root_id ?? ""}</td><td>${r.username ?? ""}</td>
+      <td>${r.size ?? 0}</td><td>${r.unique_participants ?? 0}</td><td>${r.date_norm ?? ""}</td></tr>`).join("");
+  })();
+  
+  // Emoji
+  (function(){
+    const rows = data.emoji_top5 || [];
+    const tb = document.querySelector('#tblEmoji tbody');
+    if (!tb) return;
+    tb.innerHTML = rows.map((r, i) => `<tr><td>${i+1}</td><td>${r.emoji ?? ""}</td><td>${r.count ?? 0}</td></tr>`).join("");
+  })();
+  
+  // Reacted Messages
+  (function(){
+    const rows = data.top_reacted_messages_top3 || [];
+    const tb = document.querySelector('#tblRMsgs tbody');
+    if (!tb) return;
+    tb.innerHTML = rows.map((r, i) => `
+      <tr><td>${i+1}</td><td>${r.username ?? ""}</td><td>${r.reactions_total ?? 0}</td>
+      <td>${r.date_norm ?? ""}</td><td>${(r.text_preview || "").replace(/</g,"&lt;")}</td></tr>`).join("");
+  })();
+  
+  // Reacted Users
+  (function(){
+    const rows = data.reactions_by_author_top5 || [];
+    const tb = document.querySelector('#tblRUsers tbody');
+    if (!tb) return;
+    tb.innerHTML = rows.map((r, i) => `<tr><td>${i+1}</td><td>${r.username ?? ""}</td><td>${r.total_reactions ?? 0}</td></tr>`).join("");
+  })();
+  
+  // Media
+  (function(){
+    const flags = data.media_shares || {};
+    const order = [
+      "photo", "video", "audio_file", "voice_message", "video_message",
+      "sticker", "animation (GIF)", "document", "poll", "contact",
+      "location", "game", "other"
+    ];
+    const tb = document.querySelector('#tblMedia tbody');
+    if (!tb) return;
+    tb.innerHTML = order.filter(k => k in flags).map(k => {
+      const v = flags[k] || {};
+      const pctVal = typeof v.pct === "number" ? v.pct.toFixed(2) : (v.pct || "0.00");
+      return `<tr><td>${k}</td><td>${v.count ?? 0}</td><td>${pctVal}%</td></tr>`;
+    }).join("");
+  })();
+
+  // Первичный рендер графиков
+  renderCharts();
+  window.addEventListener('resize', renderCharts, { passive: true });
+  window.addEventListener('orientationchange', renderCharts);
+
+})();
+</script>
+</body>
+</html>
