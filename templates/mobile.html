@@ -191,6 +191,61 @@
         </table>
       </div>
     </div>
+
+    <div style="margin-bottom: 16px;">
+      <h3 style="margin: 12px 0 6px; font-size: 15px; color: var(--brand-600);">Любители голосовых</h3>
+      <div class="muted" style="margin-bottom: 6px;">Топ по длительности голосовых</div>
+      <div class="table-wrap">
+        <table class="tbl" id="tblVoiceLovers">
+          <thead><tr><th>#</th><th>username</th><th>часов</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 16px;">
+      <h3 style="margin: 12px 0 6px; font-size: 15px; color: var(--brand-600);">Внешние ссылки</h3>
+      <div class="muted" style="margin-bottom: 6px;">Популярные домены</div>
+      <div class="table-wrap">
+        <table class="tbl" id="tblDomains">
+          <thead><tr><th>#</th><th>домен</th><th>раз</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 16px;">
+      <h3 style="margin: 12px 0 6px; font-size: 15px; color: var(--brand-600);">Крикуны (CAPS)</h3>
+      <div class="muted" style="margin-bottom: 6px;">Злоупотребление заглавными буквами, процент от своих сообщений (топ-10)</div>
+      <div class="table-wrap">
+        <table class="tbl" id="tblCapsScreamers">
+          <thead><tr><th>#</th><th>username</th><th>CAPS сообщений</th><th>%</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 16px;">
+      <h3 style="margin: 12px 0 6px; font-size: 15px; color: var(--brand-600);">Оформители</h3>
+      <div class="muted" style="margin-bottom: 6px;">Использование форматирования</div>
+      <div class="table-wrap">
+        <table class="tbl" id="tblFormatting">
+          <thead><tr><th>#</th><th>username</th><th>всего</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 16px;">
+      <h3 style="margin: 12px 0 6px; font-size: 15px; color: var(--brand-600);">Словарный запас (MATTR)</h3>
+      <div class="muted" style="margin-bottom: 6px;">Разнообразие в окне 1000 слов (мин. 1000 сообщений)</div>
+      <div class="table-wrap">
+        <table class="tbl" id="tblVocabulary">
+          <thead><tr><th>#</th><th>username</th><th>MATTR %</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -524,6 +579,76 @@
     }
     tb.innerHTML = rows.slice(0, 20).map((r, i) => `
       <tr><td>${i+1}</td><td>${r.from_username ?? ""}</td><td>${r.to_username ?? ""}</td><td>${r.count ?? 0}</td></tr>`
+    ).join("");
+  })();
+  
+  // Любители голосовых
+  (function(){
+    const rows = social.voice_lovers?.top_users || [];
+    const tb = document.querySelector('#tblVoiceLovers tbody');
+    if (!tb) return;
+    if (rows.length === 0) {
+      tb.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Нет данных</td></tr>';
+      return;
+    }
+    tb.innerHTML = rows.slice(0, 10).map((r, i) => `
+      <tr><td>${i+1}</td><td>${r.username ?? ""}</td><td>${r.total_hours ?? 0}</td></tr>`
+    ).join("");
+  })();
+  
+  // Внешние ссылки
+  (function(){
+    const rows = social.external_links?.top_domains || [];
+    const tb = document.querySelector('#tblDomains tbody');
+    if (!tb) return;
+    if (rows.length === 0) {
+      tb.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Нет данных</td></tr>';
+      return;
+    }
+    tb.innerHTML = rows.slice(0, 15).map((r, i) => `
+      <tr><td>${i+1}</td><td>${r.domain ?? ""}</td><td>${r.count ?? 0}</td></tr>`
+    ).join("");
+  })();
+  
+  // Крикуны
+  (function(){
+    const rows = social.caps_screamers?.top_users || [];
+    const tb = document.querySelector('#tblCapsScreamers tbody');
+    if (!tb) return;
+    if (rows.length === 0) {
+      tb.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">Нет данных</td></tr>';
+      return;
+    }
+    tb.innerHTML = rows.slice(0, 10).map((r, i) => `
+      <tr><td>${i+1}</td><td>${r.username ?? ""}</td><td>${r.caps_messages ?? 0}</td><td>${r.caps_percentage ?? 0}%</td></tr>`
+    ).join("");
+  })();
+  
+  // Оформители
+  (function(){
+    const rows = social.formatting_stylists?.top_users || [];
+    const tb = document.querySelector('#tblFormatting tbody');
+    if (!tb) return;
+    if (rows.length === 0) {
+      tb.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Нет данных</td></tr>';
+      return;
+    }
+    tb.innerHTML = rows.slice(0, 10).map((r, i) => `
+      <tr><td>${i+1}</td><td>${r.username ?? ""}</td><td>${r.total_formatting ?? 0}</td></tr>`
+    ).join("");
+  })();
+  
+  // Словарный запас
+  (function(){
+    const rows = social.vocabulary_diversity?.top_users || [];
+    const tb = document.querySelector('#tblVocabulary tbody');
+    if (!tb) return;
+    if (rows.length === 0) {
+      tb.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Нет данных</td></tr>';
+      return;
+    }
+    tb.innerHTML = rows.slice(0, 10).map((r, i) => `
+      <tr><td>${i+1}</td><td>${r.username ?? ""}</td><td>${r.mattr_score ?? 0}%</td></tr>`
     ).join("");
   })();
 

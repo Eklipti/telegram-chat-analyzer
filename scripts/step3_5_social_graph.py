@@ -18,9 +18,64 @@
 from __future__ import annotations
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 from . import utils
 from datetime import datetime
+import re
+from urllib.parse import urlparse
+
+try:
+    import pymorphy3
+    PYMORPHY_AVAILABLE = True
+except ImportError:
+    PYMORPHY_AVAILABLE = False
+
+STOPWORDS_RU = {
+    'и', 'в', 'во', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так',
+    'его', 'но', 'да', 'ты', 'к', 'у', 'же', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'было',
+    'вот', 'от', 'меня', 'еще', 'нет', 'о', 'из', 'ему', 'теперь', 'когда', 'даже', 'ну', 'вдруг',
+    'ли', 'если', 'уже', 'или', 'ни', 'быть', 'был', 'него', 'до', 'вас', 'нибудь', 'опять', 'уж',
+    'вам', 'ведь', 'там', 'потом', 'себя', 'ничего', 'ей', 'может', 'они', 'тут', 'где', 'есть',
+    'надо', 'ней', 'для', 'мы', 'тебя', 'их', 'чем', 'была', 'сам', 'чтоб', 'без', 'будто', 'чего',
+    'раз', 'тоже', 'себе', 'под', 'будет', 'ж', 'тогда', 'кто', 'этот', 'того', 'потому', 'этого',
+    'какой', 'совсем', 'ним', 'здесь', 'этом', 'один', 'почти', 'мой', 'тем', 'чтобы', 'нее',
+    'сейчас', 'были', 'куда', 'зачем', 'всех', 'никогда', 'можно', 'при', 'наконец', 'два', 'об',
+    'другой', 'хоть', 'после', 'над', 'больше', 'тот', 'через', 'эти', 'нас', 'про', 'всего',
+    'них', 'какая', 'много', 'разве', 'три', 'эту', 'моя', 'впрочем', 'хорошо', 'свою', 'этой',
+    'перед', 'иногда', 'лучше', 'чуть', 'том', 'нельзя', 'такой', 'им', 'более', 'всегда', 'конечно',
+    'всю', 'между', 'это', 'который', 'которая', 'которые'
+}
+
+STOPWORDS_EN = {
+    'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i', 'it', 'for', 'not', 'on', 'with',
+    'he', 'as', 'you', 'do', 'at', 'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her',
+    'she', 'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there', 'their', 'what', 'so', 'up',
+    'out', 'if', 'about', 'who', 'get', 'which', 'go', 'me', 'when', 'make', 'can', 'like', 'time',
+    'no', 'just', 'him', 'know', 'take', 'people', 'into', 'year', 'your', 'good', 'some', 'could',
+    'them', 'see', 'other', 'than', 'then', 'now', 'look', 'only', 'come', 'its', 'over', 'think',
+    'also', 'back', 'after', 'use', 'two', 'how', 'our', 'work', 'first', 'well', 'way', 'even',
+    'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us', 'is', 'was', 'are', 'been',
+    'has', 'had', 'were', 'said', 'did', 'having', 'may', 'should', 'am', 'being', 'does'
+}
+
+STOPWORDS = STOPWORDS_RU | STOPWORDS_EN
+
+def calculate_mattr(words: List[str], window_size: int = 1000) -> float:
+    """
+    Вычисляет MATTR (Moving-Average Type-Token Ratio).
+    Среднее разнообразие слов в скользящем окне фиксированного размера.
+    """
+    if len(words) < window_size:
+        return 0.0
+    
+    ttr_values = []
+    for i in range(len(words) - window_size + 1):
+        window = words[i:i + window_size]
+        unique_in_window = len(set(window))
+        ttr = unique_in_window / window_size
+        ttr_values.append(ttr)
+    
+    return sum(ttr_values) / len(ttr_values) if ttr_values else 0.0
 
 def build_social_graph(input_json: Path, out_dir: Path) -> None:
     """
@@ -39,6 +94,25 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
     reply_matrix: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
     quotability_counter: Counter = Counter()
     msg_id_to_author: Dict[int, str] = {}
+    
+    voice_duration_by_user: Dict[str, float] = defaultdict(float)
+    domain_counter: Counter = Counter()
+    caps_by_user: Dict[str, int] = defaultdict(int)
+    formatting_by_user: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    words_by_user: Dict[str, List[str]] = defaultdict(list)
+    message_count_by_user: Dict[str, int] = defaultdict(int)
+    
+    morph = None
+    if PYMORPHY_AVAILABLE:
+        try:
+            morph = pymorphy3.MorphAnalyzer()
+            print("✓ Лемматизация включена (pymorphy3)")
+        except Exception as e:
+            print(f"⚠ Лемматизация недоступна (ошибка инициализации): {e}")
+            print("  Анализ продолжится без лемматизации")
+    else:
+        print("⚠ Лемматизация недоступна (pymorphy3 не установлен)")
+        print("  Анализ продолжится без лемматизации")
 
     for m in msgs:
         if m.get("type") != "message":
@@ -99,6 +173,57 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
                 reply_matrix[fid_str][replied_to_author] += 1
             
             quotability_counter[replied_to_author] += 1
+        
+        message_count_by_user[fid_str] += 1
+        
+        media_type = m.get("media_type")
+        if media_type == "voice_message":
+            duration = m.get("duration_seconds")
+            if isinstance(duration, (int, float)) and duration > 0:
+                voice_duration_by_user[fid_str] += duration
+        
+        if isinstance(text_entities, list):
+            for entity in text_entities:
+                if not isinstance(entity, dict):
+                    continue
+                
+                entity_type = entity.get("type")
+                
+                if entity_type in ("link", "text_link"):
+                    url = entity.get("href") or entity.get("text", "")
+                    if url:
+                        try:
+                            parsed = urlparse(url if url.startswith(('http://', 'https://')) else 'http://' + url)
+                            domain = parsed.netloc.lower()
+                            if domain:
+                                domain_counter[domain] += 1
+                        except:
+                            pass
+                
+                if entity_type in ("bold", "italic", "spoiler", "custom_emoji", "underline", "strikethrough"):
+                    formatting_by_user[fid_str][entity_type] += 1
+        
+        meta_norm = m.get("meta_norm", {})
+        text_plain = meta_norm.get("text_plain") or utils.flatten_text(m.get("text", ""))
+        
+        if text_plain:
+            caps_count = sum(1 for c in text_plain if c.isupper())
+            total_letters = sum(1 for c in text_plain if c.isalpha())
+            if total_letters > 10 and caps_count / total_letters > 0.7:
+                caps_by_user[fid_str] += 1
+            
+            words_raw = re.findall(r'\b[а-яёa-z]{3,}\b', text_plain.lower())
+            
+            for word in words_raw:
+                if word in STOPWORDS:
+                    continue
+                
+                if morph:
+                    parsed = morph.parse(word)[0]
+                    lemma = parsed.normal_form
+                    words_by_user[fid_str].append(lemma)
+                else:
+                    words_by_user[fid_str].append(word)
 
     # Формируем топы для матрицы упоминаний
     mentions_top = []
@@ -137,7 +262,71 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
             "replies_received": int(count)
         })
     
-    # Дополнительная статистика
+    voice_lovers_top = []
+    for user_id, total_seconds in sorted(voice_duration_by_user.items(), key=lambda x: x[1], reverse=True)[:10]:
+        hours = total_seconds / 3600
+        voice_lovers_top.append({
+            "user_id": user_id,
+            "username": name_by_id.get(user_id, user_id),
+            "total_seconds": round(total_seconds, 1),
+            "total_hours": round(hours, 2)
+        })
+    
+    domains_top = []
+    for domain, count in domain_counter.most_common(15):
+        domains_top.append({
+            "domain": domain,
+            "count": int(count)
+        })
+    
+    caps_screamers_top = []
+    for user_id, caps_msg_count in sorted(caps_by_user.items(), key=lambda x: x[1], reverse=True)[:10]:
+        total_msgs = message_count_by_user.get(user_id, 1)
+        caps_screamers_top.append({
+            "user_id": user_id,
+            "username": name_by_id.get(user_id, user_id),
+            "caps_messages": int(caps_msg_count),
+            "total_messages": int(total_msgs),
+            "caps_percentage": round(caps_msg_count / total_msgs * 100, 2) if total_msgs > 0 else 0
+        })
+    
+    formatting_stylists_top = []
+    for user_id, formatting_dict in formatting_by_user.items():
+        total_formatting = sum(formatting_dict.values())
+        formatting_stylists_top.append((user_id, total_formatting, formatting_dict))
+    formatting_stylists_top.sort(key=lambda x: x[1], reverse=True)
+    
+    formatting_top = []
+    for user_id, total_fmt, fmt_dict in formatting_stylists_top[:10]:
+        formatting_top.append({
+            "user_id": user_id,
+            "username": name_by_id.get(user_id, user_id),
+            "total_formatting": int(total_fmt),
+            "breakdown": {k: int(v) for k, v in fmt_dict.items()}
+        })
+    
+    vocabulary_top = []
+    for user_id, words_list in words_by_user.items():
+        msg_count = message_count_by_user.get(user_id, 0)
+        total_words = len(words_list)
+        
+        if msg_count >= 1000 and total_words >= 1000:
+            mattr_score = calculate_mattr(words_list, window_size=1000)
+            mattr_percentage = mattr_score * 100
+            vocabulary_top.append((user_id, total_words, msg_count, mattr_percentage))
+    
+    vocabulary_top.sort(key=lambda x: x[3], reverse=True)
+    
+    vocabulary_top_list = []
+    for user_id, total_words, msg_count, mattr_pct in vocabulary_top[:10]:
+        vocabulary_top_list.append({
+            "user_id": user_id,
+            "username": name_by_id.get(user_id, user_id),
+            "total_words": int(total_words),
+            "total_messages": int(msg_count),
+            "mattr_score": round(mattr_pct, 2)
+        })
+    
     total_mentions = sum(mention_counter.values())
     total_replies = sum(sum(to_dict.values()) for to_dict in reply_matrix.values())
     unique_mentioners = len(set(uid for uid in mention_counter.keys()))
@@ -171,6 +360,31 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
         "quotability_index": {
             "description": "На чьи сообщения чаще всего отвечают",
             "top_quoted": quotability_top
+        },
+        
+        "voice_lovers": {
+            "description": "Топ пользователей по суммарной длительности голосовых сообщений",
+            "top_users": voice_lovers_top
+        },
+        
+        "external_links": {
+            "description": "Какие домены чаще всего упоминаются в чате",
+            "top_domains": domains_top
+        },
+        
+        "caps_screamers": {
+            "description": "Кто злоупотребляет CAPS LOCK",
+            "top_users": caps_screamers_top
+        },
+        
+        "formatting_stylists": {
+            "description": "Кто чаще использует форматирование текста",
+            "top_users": formatting_top
+        },
+        
+        "vocabulary_diversity": {
+            "description": "Лексическое разнообразие по методу MATTR (Moving-Average Type-Token Ratio). Среднее разнообразие в скользящем окне 1000 слов. Учитывается лемматизация и фильтрация стоп-слов (минимум 1000 сообщений и 1000 слов)",
+            "top_users": vocabulary_top_list
         }
     }
     
