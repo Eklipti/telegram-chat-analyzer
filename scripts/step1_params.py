@@ -32,20 +32,22 @@ def _value_type_name(v: Any) -> str:
     if isinstance(v, dict): return "dict"
     return type(v).__name__
 
-def _walk(obj: Any, key_counter, path_counter, type_counter, array_items_total, path: str = "$") -> None:
+def _walk(obj: Any, key_counter, path_counter, type_counter, array_items_total, array_containers_count, path: str = "$") -> None:
     if isinstance(obj, dict):
         for k, v in obj.items():
             key_counter[k] += 1
             p = f"{path}.{k}"
             path_counter[p] += 1
             type_counter[p][_value_type_name(v)] += 1
-            _walk(v, key_counter, path_counter, type_counter, array_items_total, p)
+            _walk(v, key_counter, path_counter, type_counter, array_items_total, array_containers_count, p)
     elif isinstance(obj, list):
-        p = f"{path}[]"
-        type_counter[p]["list"] += 1
-        array_items_total[p] += len(obj)
-        for it in obj:
-            _walk(it, key_counter, path_counter, type_counter, array_items_total, p)
+        list_item_path = f"{path}[]"
+        array_containers_count[list_item_path] += 1
+        array_items_total[list_item_path] += len(obj)
+        for item in obj:
+            path_counter[list_item_path] += 1
+            type_counter[list_item_path][_value_type_name(item)] += 1
+            _walk(item, key_counter, path_counter, type_counter, array_items_total, array_containers_count, list_item_path)
 
 def _md_header(t: str, lvl: int = 1) -> str:
     return f"{'#'*lvl} {t}\n\n"
@@ -66,15 +68,16 @@ def generate_params_md(input_path: Path, output_md: Path) -> None:
 
     key_counter, path_counter = Counter(), Counter()
     type_counter: Dict[str, Counter] = defaultdict(Counter)
-    array_items_total, root_snapshot = Counter(), {}
+    array_items_total, array_containers_count = Counter(), Counter()
+    root_snapshot = {}
 
     if isinstance(data, dict):
         for k, v in data.items():
             root_snapshot[k] = _value_type_name(v)
-    _walk(data, key_counter, path_counter, type_counter, array_items_total, "$")
+    _walk(data, key_counter, path_counter, type_counter, array_items_total, array_containers_count, "$")
 
     # сводка
-    total_msgs = int(array_items_total.get("$.messages[]", 0))
+    total_msgs = int(path_counter.get("$.messages[]", 0))  # Количество элементов массива messages
     replies = int(path_counter.get("$.messages[].reply_to_message_id", 0))
     edited = int(path_counter.get("$.messages[].edited", 0))
     reactions_msgs = int(path_counter.get("$.messages[].reactions", 0))
@@ -117,13 +120,18 @@ def generate_params_md(input_path: Path, output_md: Path) -> None:
 
     lines.append(_md_header("Пути массивов (occurrences / total items / avg)", 2))
     arr=[]
-    for p in sorted([k for k in type_counter if k.endswith("[]")]):
-        occ = int(type_counter[p].get("list",0))
-        total = int(array_items_total.get(p,0))
-        avg = f"{(total/occ):.2f}" if occ else "—"
-        types_str = ", ".join(f"{t}:{n}" for t,n in type_counter[p].most_common())
-        arr.append((p,occ,total,avg,types_str))
-    lines.append(_table(arr, ("Путь","Списков","Элементов всего","Среднее","Типы/счётчики")))
+    for p in sorted([k for k in path_counter if k.endswith("[]")]):
+        # Количество элементов массива (сколько раз встретился путь path[])
+        occ = int(path_counter.get(p, 0))
+        # Количество контейнеров-массивов (сколько было списков по этому пути)
+        num_arrays = int(array_containers_count.get(p, 0))
+        # Сумма длин всех массивов по этому пути
+        total = int(array_items_total.get(p, 0))
+        # Среднее количество элементов в массиве
+        avg = f"{(total/num_arrays):.2f}" if num_arrays > 0 else "—"
+        types_str = ", ".join(f"{t}:{n}" for t,n in type_counter.get(p, Counter()).most_common())
+        arr.append((p, num_arrays, occ, total, avg, types_str))
+    lines.append(_table(arr, ("Путь","Списков","Элементов","Сумма длин","Среднее","Типы/счётчики")))
 
     lines.append(_md_header("Примечания", 2))
     du = ", ".join(f"{t}:{n}" for t,n in type_counter.get("$.messages[].date_unixtime", Counter()).most_common())
