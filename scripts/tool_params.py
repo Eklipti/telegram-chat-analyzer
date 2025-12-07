@@ -142,5 +142,7 @@ def generate_params_md(input_path: Path, output_md: Path) -> None:
         f"- Типы `date_unixtime`: {du or '—'}; `edited_unixtime`: {eu or '—'}.\n"
     )
 
-    output_md.parent.mkdir(parents=True, exist_ok=True)
+    tool_output_dir = utils.OUT_DIR / "params"
+    tool_output_dir.mkdir(parents=True, exist_ok=True)
+    output_md = tool_output_dir / output_md.name
     output_md.write_text("".join(lines), encoding="utf-8")

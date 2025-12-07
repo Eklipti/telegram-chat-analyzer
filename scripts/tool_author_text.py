@@ -92,6 +92,10 @@ def generate_author_text_report(input_path: Path, output_path: Path) -> None:
     for from_id_str, msgs_dict in messages_by_user.items():
         final_report[from_id_str] = msgs_dict
 
+    tool_output_dir = utils.OUT_DIR / "author_text"
+    tool_output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = tool_output_dir / output_path.name
+    
     utils.save_json(output_path, final_report)
     logger.info(f"JSON-отчет сохранен: {output_path}")
 

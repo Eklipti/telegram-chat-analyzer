@@ -65,9 +65,22 @@ def main():
     if args.cmd == "params":
         from scripts.tool_params import generate_params_md
         src = utils.find_input_json(args.input)
-        out = args.output or (utils.MD_DIR / "json_params.md")
-        utils.MD_DIR.mkdir(parents=True, exist_ok=True)
+        out = args.output or (utils.OUT_DIR / "md" / "json_params.md")
         generate_params_md(src, out)
+
+    elif args.cmd == "author_and_text":
+        try:
+            src = utils.find_normalized_json(args.input)
+            logger.info(f"Используем нормализованный файл: {src}")
+        except FileNotFoundError:
+            logger.warning("Нормализованный файл не найден. Ищем сырой файл для обработки...")
+            raw = utils.find_input_json(args.input)
+            src = normalize_json(raw, None) # normalize вернет путь к созданному файлу
+            logger.info(f"Файл нормализован: {src}")
+
+        out_file = args.out or (utils.OUT_DIR / "author_text" / "author_text_report.json")
+
+        generate_author_text_report(src, out_file)
 
     elif args.cmd == "normalize":
         src = utils.find_input_json(args.input)
@@ -138,20 +151,6 @@ def main():
         )
 
         logger.info("--- ПРОЦЕСС ЗАВЕРШЁН ---")
-
-    elif args.cmd == "author_and_text":
-        try:
-            src = utils.find_normalized_json(args.input)
-            logger.info(f"Используем нормализованный файл: {src}")
-        except FileNotFoundError:
-            logger.warning("Нормализованный файл не найден. Ищем сырой файл для обработки...")
-            raw = utils.find_input_json(args.input)
-            src = normalize_json(raw, None) # normalize вернет путь к созданному файлу
-            logger.info(f"Файл нормализован: {src}")
-
-        out_file = args.out or (utils.OUT_DIR / "author_text_report.json")
-
-        generate_author_text_report(src, out_file)
 
 if __name__ == "__main__":
     main()
