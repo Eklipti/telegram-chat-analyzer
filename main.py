@@ -22,6 +22,7 @@ from pathlib import Path
 from scripts import utils
 from scripts.step1_normalize import normalize_json
 from scripts.step2_aggregates import build_aggregates_json
+from scripts.step3_5_social_graph import build_social_graph
 from scripts.step3_build_html import build_html_report
 from scripts.step4_report_exel import generate_excel_report 
 from scripts.tool_author_text import generate_author_text_report
@@ -53,12 +54,16 @@ def main():
     p5.add_argument("--agg-dir", type=Path, help="Каталог агрегатов (по умолч. /output/agg)")
     p5.add_argument("--out",     type=Path, help="Путь к report.mobile.html (по умолч. /output/report.mobile.html)")
 
-    p6 = sub.add_parser("all", help="Полный конвейер: normalize -> agg -> html -> mobile -> excel")
+    p6 = sub.add_parser("all", help="Полный конвейер: normalize -> agg -> social -> html -> mobile -> excel")
     p6.add_argument("--input", type=Path)
 
-    p7 = sub.add_parser("author_and_text", help="Спец. отчет: Авторы и тексты -> /output/author_text.json")
-    p7.add_argument("--input", type=Path, help="Входной JSON (нормализованный или сырой)")
-    p7.add_argument("--out", type=Path, help="Путь для сохранения результата")
+    p7 = sub.add_parser("social", help="Социальный граф и взаимодействия -> /output/agg/social_graph.json")
+    p7.add_argument("--input", type=Path, help="Входной JSON (нормализованный)")
+    p7.add_argument("--out-dir", type=Path, help="Каталог для сохранения (по умолч. /output/agg)")
+
+    p8 = sub.add_parser("author_and_text", help="Спец. отчет: Авторы и тексты -> /output/author_text.json")
+    p8.add_argument("--input", type=Path, help="Входной JSON (нормализованный или сырой)")
+    p8.add_argument("--out", type=Path, help="Путь для сохранения результата")
 
     args = ap.parse_args()
 
@@ -95,6 +100,15 @@ def main():
             src0 = normalize_json(raw, None)
         build_aggregates_json(src0, out_dir)
 
+    elif args.cmd == "social":
+        out_dir = args.out_dir or utils.AGG_DIR
+        try:
+            src0 = utils.find_normalized_json(args.input)
+        except FileNotFoundError:
+            logger.error("Нормализованный файл не найден. Запустите 'normalize' или 'all' сначала.")
+            return
+        build_social_graph(src0, out_dir)
+
     elif args.cmd == "html":
         agg_dir = args.agg_dir or utils.AGG_DIR
         out     = args.out     or (utils.OUT_DIR / "report.html")
@@ -129,6 +143,9 @@ def main():
 
         logger.info("--- ШАГ 2: Агрегация ---")
         build_aggregates_json(norm_path, utils.AGG_DIR)
+
+        logger.info("--- ШАГ 3.5: Социальный граф ---")
+        build_social_graph(norm_path, utils.AGG_DIR)
 
         logger.info("--- ШАГ 3: Генерация HTML-отчётов ---")
         build_html_report(

@@ -39,10 +39,15 @@ def build_html_report(
         print(f"ОШИБКА: Не найден главный файл агрегатов: {all_agg_path}")
         all_agg = {}
 
-    # Загрузку .md файлов убрал
-    # data_blobs - это просто копия all_agg
+    social_graph_path = agg_dir / "social_graph.json"
+    social_graph = _load_json_if_exists(social_graph_path)
+    if not social_graph:
+        print(f"ПРЕДУПРЕЖДЕНИЕ: Файл социального графа не найден: {social_graph_path}")
+        social_graph = {}
+
     data_blobs = {
         **all_agg,
+        "social_graph": social_graph,
     }
 
     try:

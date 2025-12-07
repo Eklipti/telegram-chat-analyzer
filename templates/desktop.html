@@ -111,6 +111,7 @@
       <a href="#rusers">Реакции по авторам</a>
       <a href="#media">Медиа</a>
       <a href="#polls">Опросы</a>
+      <a href="#social">Социальный граф</a>
     </nav>
   </div>
 </header>
@@ -182,6 +183,37 @@
       <thead><tr><th>#</th><th>username</th><th>опросов</th></tr></thead>
       <tbody></tbody>
     </table>
+  </div>
+
+  <div class="section" id="social">
+    <h2>Социальный граф и взаимодействия</h2>
+    
+    <div style="margin-bottom: 24px;">
+      <h3 style="margin: 16px 0 8px; font-size: 16px; color: var(--brand-600);">Индекс цитируемости</h3>
+      <div class="muted" style="margin-bottom: 8px;">На чьи сообщения чаще всего отвечают (топ-10)</div>
+      <table class="tbl" id="tblQuotability">
+        <thead><tr><th>#</th><th>username</th><th>получено ответов</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div style="margin-bottom: 24px;">
+      <h3 style="margin: 16px 0 8px; font-size: 16px; color: var(--brand-600);">Матрица упоминаний</h3>
+      <div class="muted" style="margin-bottom: 8px;">Кого чаще всего упоминают через @username (топ-15)</div>
+      <table class="tbl" id="tblMentions">
+        <thead><tr><th>#</th><th>username</th><th>упоминаний</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div style="margin-bottom: 24px;">
+      <h3 style="margin: 16px 0 8px; font-size: 16px; color: var(--brand-600);">Карта симпатий</h3>
+      <div class="muted" style="margin-bottom: 8px;">Кто кому чаще отвечает (топ-20 пар)</div>
+      <table class="tbl" id="tblReplyMatrix">
+        <thead><tr><th>#</th><th>от (кто отвечает)</th><th>кому (на чьи сообщения)</th><th>ответов</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -474,6 +506,51 @@
     if (!tb) return;
     tb.innerHTML = rows.map((r, i) => `
       <tr><td>${i+1}</td><td>${r.username ?? ""}</td><td>${r.polls ?? 0}</td></tr>`
+    ).join("");
+  })();
+  
+  // ----- Социальный граф -----
+  const social = data.social_graph || {};
+  
+  // Индекс цитируемости
+  (function(){
+    const rows = social.quotability_index?.top_quoted || [];
+    const tb = document.querySelector('#tblQuotability tbody');
+    if (!tb) return;
+    if (rows.length === 0) {
+      tb.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Нет данных</td></tr>';
+      return;
+    }
+    tb.innerHTML = rows.map((r, i) => `
+      <tr><td>${i+1}</td><td>${r.username ?? ""}</td><td>${r.replies_received ?? 0}</td></tr>`
+    ).join("");
+  })();
+  
+  // Матрица упоминаний
+  (function(){
+    const rows = social.mention_matrix?.top_mentioned || [];
+    const tb = document.querySelector('#tblMentions tbody');
+    if (!tb) return;
+    if (rows.length === 0) {
+      tb.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Нет данных</td></tr>';
+      return;
+    }
+    tb.innerHTML = rows.map((r, i) => `
+      <tr><td>${i+1}</td><td>${r.username ?? ""}</td><td>${r.count ?? 0}</td></tr>`
+    ).join("");
+  })();
+  
+  // Карта симпатий
+  (function(){
+    const rows = social.reply_matrix?.top_pairs || [];
+    const tb = document.querySelector('#tblReplyMatrix tbody');
+    if (!tb) return;
+    if (rows.length === 0) {
+      tb.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">Нет данных</td></tr>';
+      return;
+    }
+    tb.innerHTML = rows.map((r, i) => `
+      <tr><td>${i+1}</td><td>${r.from_username ?? ""}</td><td>${r.to_username ?? ""}</td><td>${r.count ?? 0}</td></tr>`
     ).join("");
   })();
   
