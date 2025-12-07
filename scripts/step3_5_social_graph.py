@@ -102,6 +102,11 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
     words_by_user: Dict[str, List[str]] = defaultdict(list)
     message_count_by_user: Dict[str, int] = defaultdict(int)
     
+    reply_times_by_user: Dict[str, List[int]] = defaultdict(list)
+    hour_distribution_by_user: Dict[str, Dict[int, int]] = defaultdict(lambda: defaultdict(int))
+    edit_count_by_user: Dict[str, int] = defaultdict(int)
+    msg_id_to_timestamp: Dict[int, int] = {}
+    
     morph = None
     if PYMORPHY_AVAILABLE:
         try:
@@ -124,6 +129,10 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
         if isinstance(mid, int) and fid:
             fid_str = str(fid)
             msg_id_to_author[mid] = fid_str
+            
+            timestamp = m.get("date_unixtime")
+            if isinstance(timestamp, (int, str)):
+                msg_id_to_timestamp[mid] = int(timestamp)
             
             disp = m.get("from")
             if isinstance(disp, str) and disp.strip():
@@ -164,7 +173,6 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
                         if mention_text and mentioned_id_str not in name_by_id:
                             name_by_id[mentioned_id_str] = mention_text
         
-        # Анализ ответов (reply_to_message_id)
         reply_to_id = m.get("reply_to_message_id")
         if isinstance(reply_to_id, int) and reply_to_id in msg_id_to_author:
             replied_to_author = msg_id_to_author[reply_to_id]
@@ -173,8 +181,27 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
                 reply_matrix[fid_str][replied_to_author] += 1
             
             quotability_counter[replied_to_author] += 1
+            
+            current_timestamp = m.get("date_unixtime")
+            original_timestamp = msg_id_to_timestamp.get(reply_to_id)
+            if isinstance(current_timestamp, (int, str)) and original_timestamp:
+                reply_time = int(current_timestamp) - original_timestamp
+                if reply_time > 0:
+                    reply_times_by_user[fid_str].append(reply_time)
         
         message_count_by_user[fid_str] += 1
+        
+        date_str = m.get("date")
+        if isinstance(date_str, str):
+            try:
+                dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                hour = dt.hour
+                hour_distribution_by_user[fid_str][hour] += 1
+            except:
+                pass
+        
+        if m.get("edited"):
+            edit_count_by_user[fid_str] += 1
         
         media_type = m.get("media_type")
         if media_type == "voice_message":
@@ -327,6 +354,80 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
             "mattr_score": round(mattr_pct, 2)
         })
     
+    reaction_speed_top = []
+    for user_id, reply_times in reply_times_by_user.items():
+        total_msgs = message_count_by_user.get(user_id, 0)
+        if total_msgs < 1000 or len(reply_times) == 0:
+            continue
+        
+        reply_times_sorted = sorted(reply_times)
+        mid_idx = len(reply_times_sorted) // 2
+        if len(reply_times_sorted) % 2 == 0:
+            median_seconds = (reply_times_sorted[mid_idx - 1] + reply_times_sorted[mid_idx]) / 2
+        else:
+            median_seconds = reply_times_sorted[mid_idx]
+        
+        reaction_speed_top.append({
+            "user_id": user_id,
+            "username": name_by_id.get(user_id, user_id),
+            "median_seconds": round(median_seconds, 1),
+            "median_minutes": round(median_seconds / 60, 1),
+            "median_hours": round(median_seconds / 3600, 2),
+            "total_replies": len(reply_times),
+            "total_messages": total_msgs
+        })
+    
+    reaction_speed_top.sort(key=lambda x: x["median_seconds"])
+    reaction_speed_top = reaction_speed_top[:10]
+    
+    owls_vs_larks = []
+    for user_id, hour_dist in hour_distribution_by_user.items():
+        total_msgs = sum(hour_dist.values())
+        if total_msgs < 1000:
+            continue
+        
+        night_hours = sum(hour_dist.get(h, 0) for h in range(1, 7))
+        day_hours = sum(hour_dist.get(h, 0) for h in range(9, 18))
+        
+        night_pct = (night_hours / total_msgs * 100) if total_msgs > 0 else 0
+        day_pct = (day_hours / total_msgs * 100) if total_msgs > 0 else 0
+        
+        if night_pct > 30:
+            category = "Сова"
+        elif day_pct > 50:
+            category = "Жаворонок"
+        else:
+            category = "Нейтральный"
+        
+        owls_vs_larks.append({
+            "user_id": user_id,
+            "username": name_by_id.get(user_id, user_id),
+            "category": category,
+            "night_percentage": round(night_pct, 2),
+            "day_percentage": round(day_pct, 2),
+            "total_messages": total_msgs
+        })
+    
+    owls_vs_larks.sort(key=lambda x: x["night_percentage"], reverse=True)
+    
+    self_censorship_top = []
+    for user_id, edit_count in edit_count_by_user.items():
+        total_msgs = message_count_by_user.get(user_id, 0)
+        if total_msgs < 1000:
+            continue
+        
+        edit_pct = (edit_count / total_msgs * 100) if total_msgs > 0 else 0
+        self_censorship_top.append({
+            "user_id": user_id,
+            "username": name_by_id.get(user_id, user_id),
+            "edited_messages": int(edit_count),
+            "total_messages": int(total_msgs),
+            "edit_percentage": round(edit_pct, 2)
+        })
+    
+    self_censorship_top.sort(key=lambda x: x["edit_percentage"], reverse=True)
+    self_censorship_top = self_censorship_top[:10]
+    
     total_mentions = sum(mention_counter.values())
     total_replies = sum(sum(to_dict.values()) for to_dict in reply_matrix.values())
     unique_mentioners = len(set(uid for uid in mention_counter.keys()))
@@ -385,6 +486,21 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
         "vocabulary_diversity": {
             "description": "Лексическое разнообразие по методу MATTR (Moving-Average Type-Token Ratio). Среднее разнообразие в скользящем окне 1000 слов. Учитывается лемматизация и фильтрация стоп-слов (минимум 1000 сообщений и 1000 слов)",
             "top_users": vocabulary_top_list
+        },
+        
+        "reaction_speed": {
+            "description": "Медианное время ответа на сообщения через reply для каждого пользователя (топ-10 самых быстрых, минимум 1000 сообщений)",
+            "top_users": reaction_speed_top
+        },
+        
+        "owls_vs_larks": {
+            "description": "Категоризация пользователей по времени активности. Совы (ночь 01:00-06:00 > 30%), Жаворонки (день 09:00-17:00 > 50%), минимум 1000 сообщений",
+            "users": owls_vs_larks
+        },
+        
+        "self_censorship": {
+            "description": "Индекс самоцензуры - кто чаще редактирует свои сообщения после отправки (топ-10, минимум 1000 сообщений)",
+            "top_users": self_censorship_top
         }
     }
     

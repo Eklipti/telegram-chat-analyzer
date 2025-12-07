@@ -246,6 +246,41 @@
         </table>
       </div>
     </div>
+
+    <h2 style="margin: 20px 0 10px; font-size: 16px; color: var(--brand-700);">Поведенческие паттерны</h2>
+
+    <div style="margin-bottom: 16px;">
+      <h3 style="margin: 12px 0 6px; font-size: 15px; color: var(--brand-600);">Скорость реакции (Ping)</h3>
+      <div class="muted" style="margin-bottom: 6px;">Топ-10 самых быстрых (мин. 1000 сообщений)</div>
+      <div class="table-wrap">
+        <table class="tbl" id="tblReactionSpeed">
+          <thead><tr><th>#</th><th>username</th><th>медиана</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 16px;">
+      <h3 style="margin: 12px 0 6px; font-size: 15px; color: var(--brand-600);">"Совы" vs "Жаворонки"</h3>
+      <div class="muted" style="margin-bottom: 6px;">Категоризация по времени (мин. 1000 сообщений)</div>
+      <div class="table-wrap">
+        <table class="tbl" id="tblOwlsVsLarks">
+          <thead><tr><th>#</th><th>username</th><th>категория</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 16px;">
+      <h3 style="margin: 12px 0 6px; font-size: 15px; color: var(--brand-600);">Индекс "Самоцензуры"</h3>
+      <div class="muted" style="margin-bottom: 6px;">Редактирование сообщений (мин. 1000 сообщений)</div>
+      <div class="table-wrap">
+        <table class="tbl" id="tblSelfCensorship">
+          <thead><tr><th>#</th><th>username</th><th>%</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -649,6 +684,61 @@
     }
     tb.innerHTML = rows.slice(0, 10).map((r, i) => `
       <tr><td>${i+1}</td><td>${r.username ?? ""}</td><td>${r.mattr_score ?? 0}%</td></tr>`
+    ).join("");
+  })();
+  
+  // Скорость реакции
+  (function(){
+    const rows = social.reaction_speed?.top_users || [];
+    const tb = document.querySelector('#tblReactionSpeed tbody');
+    if (!tb) return;
+    if (rows.length === 0) {
+      tb.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Нет данных</td></tr>';
+      return;
+    }
+    tb.innerHTML = rows.map((r, i) => {
+      const medianSec = r.median_seconds ?? 0;
+      const medianMin = r.median_minutes ?? 0;
+      const medianHours = r.median_hours ?? 0;
+      let timeStr = '';
+      if (medianHours >= 1) {
+        timeStr = `${medianHours} ч`;
+      } else if (medianMin >= 1) {
+        timeStr = `${medianMin} мин`;
+      } else {
+        timeStr = `${medianSec} сек`;
+      }
+      return `<tr><td>${i+1}</td><td>${r.username ?? ""}</td><td>${timeStr}</td></tr>`;
+    }).join("");
+  })();
+  
+  // Совы vs Жаворонки
+  (function(){
+    const rows = social.owls_vs_larks?.users || [];
+    const tb = document.querySelector('#tblOwlsVsLarks tbody');
+    if (!tb) return;
+    if (rows.length === 0) {
+      tb.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Нет данных</td></tr>';
+      return;
+    }
+    const displayRows = rows.slice(0, 15);
+    tb.innerHTML = displayRows.map((r, i) => {
+      const categoryEmoji = r.category === "Сова" ? "🦉" : r.category === "Жаворонок" ? "🐦" : "😐";
+      return `<tr><td>${i+1}</td><td>${r.username ?? ""}</td><td>${categoryEmoji} ${r.category ?? ""}</td></tr>`;
+    }).join("");
+  })();
+  
+  // Самоцензура
+  (function(){
+    const rows = social.self_censorship?.top_users || [];
+    const tb = document.querySelector('#tblSelfCensorship tbody');
+    if (!tb) return;
+    if (rows.length === 0) {
+      tb.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Нет данных</td></tr>';
+      return;
+    }
+    tb.innerHTML = rows.slice(0, 10).map((r, i) => `
+      <tr><td>${i+1}</td><td>${r.username ?? ""}</td><td>${r.edit_percentage ?? 0}%</td></tr>`
     ).join("");
   })();
 
