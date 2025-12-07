@@ -87,7 +87,6 @@ def main():
         out     = args.out     or (utils.OUT_DIR / "report.html")
         build_html_report(
             agg_dir=agg_dir, 
-            md_dir=utils.MD_DIR, # (не используется)
             template_name="desktop.html", 
             out_html=out
         )
@@ -97,7 +96,6 @@ def main():
         out     = args.out     or (utils.OUT_DIR / "report.mobile.html")
         build_html_report(
             agg_dir=agg_dir, 
-            md_dir=utils.MD_DIR, # (не используется)
             template_name="mobile.html", 
             out_html=out
         )
@@ -122,13 +120,11 @@ def main():
         logger.info("--- ШАГ 3: Генерация HTML-отчётов ---")
         build_html_report(
             agg_dir=utils.AGG_DIR, 
-            md_dir=utils.MD_DIR, 
             template_name="desktop.html", 
             out_html=(utils.OUT_DIR / "report.html")
         )
         build_html_report(
             agg_dir=utils.AGG_DIR, 
-            md_dir=utils.MD_DIR, 
             template_name="mobile.html", 
             out_html=(utils.OUT_DIR / "report.mobile.html")
         )

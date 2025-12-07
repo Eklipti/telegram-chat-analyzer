@@ -29,7 +29,6 @@ def _load_json_if_exists(p: Path) -> Optional[dict]:
 
 def build_html_report(
     agg_dir: Path, 
-    md_dir: Path,       # Оставил md_dir для совместимости с main.py, но не используем
     template_name: str, # "desktop.html" или "mobile.html"
     out_html: Path
 ) -> None:
