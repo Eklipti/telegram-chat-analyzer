@@ -59,7 +59,7 @@ def normalize_messages(
     logger: logging.Logger,
 ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     """
-    Преобразует НОРМАЛИЗОВАННЫЙ JSON (из step2) в DataFrame.
+    Преобразует НОРМАЛИЗОВАННЫЙ JSON (из step1) в DataFrame.
     Данные берутся из 'meta_norm'.
     """
     messages = []
@@ -591,7 +591,7 @@ def generate_excel_report(
          raw = orjson.loads(f.read())
 
     
-    # Читаем 'shift' и 'note' из meta-блока, который создал step2
+    # Читаем 'shift' и 'note' из meta-блока, который создал step1
     meta_info_list = raw.get("meta", [])
     meta_info = {}
     if meta_info_list and isinstance(meta_info_list, list):

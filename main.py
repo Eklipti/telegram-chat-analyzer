@@ -20,10 +20,10 @@ import logging
 
 from pathlib import Path
 from scripts import utils
-from scripts.step2_normalize import normalize_json
-from scripts.step3_aggregates import build_aggregates_json
-from scripts.step4_build_html import build_html_report
-from scripts.step5_report_exel import generate_excel_report 
+from scripts.step1_normalize import normalize_json
+from scripts.step2_aggregates import build_aggregates_json
+from scripts.step3_build_html import build_html_report
+from scripts.step4_report_exel import generate_excel_report 
 from scripts.tool_author_text import generate_author_text_report
 
 def main():
@@ -63,7 +63,7 @@ def main():
     args = ap.parse_args()
 
     if args.cmd == "params":
-        from scripts.step1_params import generate_params_md
+        from scripts.tool_params import generate_params_md
         src = utils.find_input_json(args.input)
         out = args.output or (utils.MD_DIR / "json_params.md")
         utils.MD_DIR.mkdir(parents=True, exist_ok=True)
@@ -108,18 +108,18 @@ def main():
 
         src_raw = utils.find_input_json(args.input)
 
-        logger.info("--- ШАГ 2: Нормализация данных ---")
+        logger.info("--- ШАГ 1: Нормализация данных ---")
         try:
             norm_path = normalize_json(src_raw, None)
         except Exception as e:
-            logger.error(f"--- ОШИБКА: Шаг 2 не удался ---")
+            logger.error(f"--- ОШИБКА: Шаг 1 не удался ---")
             logger.error(e, exc_info=True)
             return 
 
-        logger.info("--- ШАГ 3: Агрегация ---")
+        logger.info("--- ШАГ 2: Агрегация ---")
         build_aggregates_json(norm_path, utils.AGG_DIR)
 
-        logger.info("--- ШАГ 4: Генерация HTML-отчётов ---")
+        logger.info("--- ШАГ 3: Генерация HTML-отчётов ---")
         build_html_report(
             agg_dir=utils.AGG_DIR, 
             md_dir=utils.MD_DIR, 
@@ -133,7 +133,7 @@ def main():
             out_html=(utils.OUT_DIR / "report.mobile.html")
         )
 
-        logger.info("--- ШАГ 5: Генерация Excel-отчета ---")
+        logger.info("--- ШАГ 4: Генерация Excel-отчета ---")
         generate_excel_report(
             normalized_json_path=norm_path,
             output_excel_path=(utils.OUT_DIR / "report.xlsx"),

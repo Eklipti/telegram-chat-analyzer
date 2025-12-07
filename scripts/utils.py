@@ -117,7 +117,7 @@ def find_normalized_json(explicit: Optional[Path]) -> Path:
     if not cands:
         raise FileNotFoundError(
             f"Не найден нормализованный файл ([0].json) в {PROCESSED_JSON_DIR}. "
-            "Запустите 'step2_normalize' (или 'all') для его создания."
+            "Запустите 'step1_normalize' (или 'all') для его создания."
         )
     cands.sort(key=lambda p: p.stat().st_mtime, reverse=True)
     return cands[0]
