@@ -26,6 +26,7 @@ from scripts.step3_5_social_graph import build_social_graph
 from scripts.step3_build_html import build_html_report
 from scripts.step4_report_exel import generate_excel_report 
 from scripts.tool_author_text import generate_author_text_report
+from scripts.tool_context import generate_context_report
 
 def main():
 
@@ -65,6 +66,10 @@ def main():
     p8.add_argument("--input", type=Path, help="Входной JSON (нормализованный или сырой)")
     p8.add_argument("--out", type=Path, help="Путь для сохранения результата")
 
+    p9 = sub.add_parser("context", help="Текстовая история сообщений за период -> /output/context/context_*.txt")
+    p9.add_argument("--date", type=str, required=True, help="Дата или период: -1 (вчера), YYYY-MM-DD (день), YYYY-MM-DD_YYYY-MM-DD (период)")
+    p9.add_argument("--output", type=Path, help="Путь к нормализованному JSON (опционально)")
+
     args = ap.parse_args()
 
     if args.cmd == "params":
@@ -86,6 +91,22 @@ def main():
         out_file = args.out or (utils.OUT_DIR / "author_text" / "author_text_report.json")
 
         generate_author_text_report(src, out_file)
+
+    elif args.cmd == "context":
+        try:
+            src = utils.find_normalized_json(args.output)
+            logger.info(f"Используем нормализованный файл: {src}")
+        except FileNotFoundError:
+            logger.warning("Нормализованный файл не найден. Ищем сырой файл для обработки...")
+            raw = utils.find_input_json(args.output)
+            src = normalize_json(raw, None)
+            logger.info(f"Файл нормализован: {src}")
+
+        # output_path используется только для совместимости с сигнатурой функции,
+        # но фактический путь формируется внутри функции на основе даты
+        out_file = args.output or (utils.OUT_DIR / "context" / "context_report.txt")
+
+        generate_context_report(src, out_file, args.date)
 
     elif args.cmd == "normalize":
         src = utils.find_input_json(args.input)
