@@ -49,7 +49,6 @@ def parse_date_argument(date_arg: str) -> Tuple[datetime, datetime]:
         try:
             start_date = datetime.strptime(parts[0], "%Y-%m-%d")
             end_date = datetime.strptime(parts[1], "%Y-%m-%d")
-            # Устанавливаем время для end_date на конец дня
             end_date = datetime.combine(end_date.date(), datetime.max.time())
         except ValueError as e:
             raise ValueError(f"Неверный формат даты: {date_arg}. Ожидается YYYY-MM-DD") from e
@@ -77,9 +76,7 @@ def extract_date_from_norm(date_norm: Optional[str]) -> Optional[datetime]:
         return None
     
     try:
-        # Парсим ISO формат с временной зоной
         dt = datetime.fromisoformat(date_norm.replace("Z", "+00:00"))
-        # Возвращаем naive datetime для сравнения
         return dt.replace(tzinfo=None)
     except (ValueError, AttributeError):
         return None

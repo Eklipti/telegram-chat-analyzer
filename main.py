@@ -68,7 +68,7 @@ def main():
 
     p9 = sub.add_parser("context", help="Текстовая история сообщений за период -> /output/context/context_*.txt")
     p9.add_argument("--date", type=str, required=True, help="Дата или период: -1 (вчера), YYYY-MM-DD (день), YYYY-MM-DD_YYYY-MM-DD (период)")
-    p9.add_argument("--output", type=Path, help="Путь к нормализованному JSON (опционально)")
+    p9.add_argument("--input", type=Path, help="Путь к нормализованному JSON (опционально)")
 
     args = ap.parse_args()
 
@@ -94,17 +94,17 @@ def main():
 
     elif args.cmd == "context":
         try:
-            src = utils.find_normalized_json(args.output)
+            src = utils.find_normalized_json(args.input)
             logger.info(f"Используем нормализованный файл: {src}")
         except FileNotFoundError:
             logger.warning("Нормализованный файл не найден. Ищем сырой файл для обработки...")
-            raw = utils.find_input_json(args.output)
+            raw = utils.find_input_json(args.input)
             src = normalize_json(raw, None)
             logger.info(f"Файл нормализован: {src}")
 
         # output_path используется только для совместимости с сигнатурой функции,
         # но фактический путь формируется внутри функции на основе даты
-        out_file = args.output or (utils.OUT_DIR / "context" / "context_report.txt")
+        out_file = None
 
         generate_context_report(src, out_file, args.date)
 
