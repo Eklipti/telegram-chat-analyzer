@@ -70,6 +70,10 @@ def main():
     p9.add_argument("--date", type=str, required=True, help="Дата или период: -1 (вчера), YYYY-MM-DD (день), YYYY-MM-DD_YYYY-MM-DD (период)")
     p9.add_argument("--input", type=Path, help="Путь к нормализованному JSON (опционально)")
 
+    p10 = sub.add_parser("excel", help="Excel-отчёт -> /output/report.xlsx")
+    p10.add_argument("--input", type=Path, help="Входной JSON (нормализованный или сырой)")
+    p10.add_argument("--out", type=Path, help="Путь к report.xlsx (по умолч. /output/report.xlsx)")
+
     args = ap.parse_args()
 
     if args.cmd == "params":
@@ -107,6 +111,25 @@ def main():
         out_file = None
 
         generate_context_report(src, out_file, args.date)
+
+    elif args.cmd == "excel":
+        try:
+            src = utils.find_normalized_json(args.input)
+            logger.info(f"Используем нормализованный файл: {src}")
+        except FileNotFoundError:
+            logger.warning("Нормализованный файл не найден. Ищем сырой файл для обработки...")
+            raw = utils.find_input_json(args.input)
+            src = normalize_json(raw, None)
+            logger.info(f"Файл нормализован: {src}")
+
+        out_file = args.out or (utils.OUT_DIR / "report.xlsx")
+
+        generate_excel_report(
+            normalized_json_path=src,
+            output_excel_path=out_file,
+            hash_len=10,
+            logger=logger
+        )
 
     elif args.cmd == "normalize":
         src = utils.find_input_json(args.input)
