@@ -1,4 +1,4 @@
-# Telegram Chat Analytics Pipeline
+# Telegram Chat Analyzer
 # Copyright (C) 2025 Eklipti
 #
 # Этот проект — свободное программное обеспечение: вы можете

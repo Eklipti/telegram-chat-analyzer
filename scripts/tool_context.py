@@ -1,4 +1,4 @@
-# Telegram Chat Analytics Pipeline
+# Telegram Chat Analyzer
 # Copyright (C) 2025 Eklipti
 #
 # Этот проект — свободное программное обеспечение: вы можете
@@ -102,6 +102,7 @@ def generate_context_report(
     output_path: Path, 
     date_arg: str,
     compress: bool = False,
+    split_by_days: bool = False,
     min_length: int = 5,
     max_length: int = 250
 ) -> None:
@@ -114,9 +115,43 @@ def generate_context_report(
         output_path: Путь для сохранения (опционально, формируется автоматически)
         date_arg: Аргумент даты (-1, YYYY-MM-DD, YYYY-MM-DD_YYYY-MM-DD)
         compress: Если True, создает дополнительно сжатую версию
+        split_by_days: Если True и date_arg содержит период, создает отдельный файл для каждого дня
         min_length: Минимальная длина сообщения для сжатой версии
         max_length: Максимальная длина сообщения для сжатой версии
     """
+    if split_by_days and "_" in date_arg:
+        logger.info("Режим split: создание отдельных файлов для каждого дня в периоде")
+        
+        try:
+            start_date, end_date = parse_date_argument(date_arg)
+        except ValueError as e:
+            logger.error(f"Ошибка парсинга периода: {e}")
+            raise
+        
+        # Генерируем список всех дней в периоде
+        current_date = start_date.date()
+        end_date_only = end_date.date()
+        
+        while current_date <= end_date_only:
+            date_str = current_date.strftime("%Y-%m-%d")
+            logger.info(f"Обработка дня: {date_str}")
+            
+            # Рекурсивно вызываем функцию для каждого дня
+            generate_context_report(
+                input_path=input_path,
+                output_path=output_path,
+                date_arg=date_str,
+                compress=compress,
+                split_by_days=False,  # Отключаем split для вложенных вызовов
+                min_length=min_length,
+                max_length=max_length
+            )
+            
+            current_date += timedelta(days=1)
+        
+        logger.info(f"Режим split завершен. Обработано дней: {(end_date_only - start_date.date()).days + 1}")
+        return
+    
     data = utils.load_json(input_path)
     msgs = data.get("messages", [])
     chat_id = data.get("id", "unknown_chat_id")
