@@ -20,6 +20,7 @@ import logging
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from . import utils
 from .utils_compress_chat import process_chat_log, get_file_stats
 
@@ -131,25 +132,75 @@ def generate_context_report(
         # Генерируем список всех дней в периоде
         current_date = start_date.date()
         end_date_only = end_date.date()
+        days_list = []
         
         while current_date <= end_date_only:
-            date_str = current_date.strftime("%Y-%m-%d")
-            logger.info(f"Обработка дня: {date_str}")
-            
-            # Рекурсивно вызываем функцию для каждого дня
-            generate_context_report(
-                input_path=input_path,
-                output_path=output_path,
-                date_arg=date_str,
-                compress=compress,
-                split_by_days=False,  # Отключаем split для вложенных вызовов
-                min_length=min_length,
-                max_length=max_length
-            )
-            
+            days_list.append(current_date.strftime("%Y-%m-%d"))
             current_date += timedelta(days=1)
         
-        logger.info(f"Режим split завершен. Обработано дней: {(end_date_only - start_date.date()).days + 1}")
+        total_days = len(days_list)
+        # Ограничиваем количество потоков до 100
+        max_workers = min(total_days, 100)
+        
+        logger.info(f"Обработка {total_days} дней в {max_workers} потоках")
+        
+        # Функция для обработки одного дня
+        def process_single_day(date_str: str) -> Tuple[str, bool, Optional[str]]:
+            """
+            Обрабатывает один день и возвращает результат.
+            Returns: (date_str, success, error_message)
+            """
+            try:
+                logger.info(f"Начало обработки дня: {date_str}")
+                generate_context_report(
+                    input_path=input_path,
+                    output_path=output_path,
+                    date_arg=date_str,
+                    compress=compress,
+                    split_by_days=False,  # Отключаем split для вложенных вызовов
+                    min_length=min_length,
+                    max_length=max_length
+                )
+                logger.info(f"Завершена обработка дня: {date_str}")
+                return (date_str, True, None)
+            except Exception as e:
+                error_msg = f"Ошибка при обработке дня {date_str}: {e}"
+                logger.error(error_msg)
+                return (date_str, False, error_msg)
+        
+        # Параллельная обработка
+        completed = 0
+        failed = 0
+        errors = []
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Отправляем все задачи
+            future_to_date = {executor.submit(process_single_day, date_str): date_str 
+                            for date_str in days_list}
+            
+            # Собираем результаты по мере завершения
+            for future in as_completed(future_to_date):
+                date_str, success, error_msg = future.result()
+                if success:
+                    completed += 1
+                else:
+                    failed += 1
+                    errors.append(error_msg)
+                
+                logger.info(f"Прогресс: {completed + failed}/{total_days} дней обработано")
+        
+        # Итоговая статистика
+        logger.info(f"{'='*60}")
+        logger.info(f"РЕЖИМ SPLIT ЗАВЕРШЕН")
+        logger.info(f"{'='*60}")
+        logger.info(f"Всего дней: {total_days}")
+        logger.info(f"Успешно обработано: {completed}")
+        if failed > 0:
+            logger.warning(f"Ошибок: {failed}")
+            for error in errors:
+                logger.warning(f"  - {error}")
+        logger.info(f"Использовано потоков: {max_workers}")
+        logger.info(f"{'='*60}")
         return
     
     data = utils.load_json(input_path)
