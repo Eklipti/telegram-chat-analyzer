@@ -72,6 +72,7 @@ def main():
     p9.add_argument("--zip", action="store_true", help="Создать сжатую версию контекста")
     p9.add_argument("--split", action="store_true", help="Разбить период на отдельные файлы для каждого дня (работает только с периодом)")
     p9.add_argument("--threads", type=int, default=2, help="Количество потоков для режима --split (по умолчанию 2, максимум 100)")
+    p9.add_argument("--batch-size", type=int, default=10000, help="Размер батча сообщений для обработки в режиме --split (по умолчанию 10000 строк)")
     p9.add_argument("--min", type=int, default=5, help="Минимальная длина сообщения для сжатой версии (по умолчанию 5)")
     p9.add_argument("--max", type=int, default=250, help="Максимальная длина сообщения для сжатой версии (по умолчанию 250)")
 
@@ -122,6 +123,7 @@ def main():
             compress=args.zip,
             split_by_days=args.split,
             max_workers=args.threads,
+            batch_size=args.batch_size,
             min_length=args.min,
             max_length=args.max
         )

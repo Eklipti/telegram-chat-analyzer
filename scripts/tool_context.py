@@ -20,11 +20,90 @@ import logging
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from . import utils
 from .utils_compress_chat import process_chat_log, get_file_stats
 
 logger = logging.getLogger(__name__)
+
+def _write_context_file(txt_path: Path, filtered_messages: list) -> None:
+    """
+    Записывает отфильтрованные сообщения в текстовый файл.
+    
+    Args:
+        txt_path: Путь к выходному файлу
+        filtered_messages: Список отфильтрованных сообщений
+    """
+    if not filtered_messages:
+        return
+    
+    WALL_THRESHOLD = timedelta(minutes=5)
+    
+    with open(txt_path, "w", encoding="utf-8") as f:
+        current_group = None
+        
+        for msg in filtered_messages:
+            from_name = msg["from"]
+            date_formatted = format_date_for_output(msg["date_norm"])
+            text_plain = msg["text_plain"]
+            msg_date = msg["msg_date"]
+            
+            # Проверяем, можно ли добавить к текущей группе
+            if current_group is not None:
+                last_msg_date = current_group["last_date"]
+                time_diff = msg_date - last_msg_date
+                
+                # Если тот же пользователь и разница < порога - добавляем в группу
+                if (current_group["from"] == from_name and 
+                    time_diff < WALL_THRESHOLD):
+                    current_group["texts"].append(text_plain)
+                    current_group["last_date"] = msg_date
+                    continue
+                else:
+                    # Завершаем текущую группу и выводим
+                    f.write(f"{current_group['from']} {current_group['date']}\n")
+                    for text in current_group["texts"]:
+                        f.write(f'"{text}"\n')
+                    f.write("\n")
+            
+            # Начинаем новую группу
+            current_group = {
+                "from": from_name,
+                "date": date_formatted,
+                "texts": [text_plain],
+                "last_date": msg_date
+            }
+        
+        # Выводим последнюю группу
+        if current_group is not None:
+            f.write(f"{current_group['from']} {current_group['date']}\n")
+            for text in current_group["texts"]:
+                f.write(f'"{text}"\n\n')
+
+def _compress_context_file(
+    input_path: Path, 
+    output_path: Path, 
+    min_length: int, 
+    max_length: int
+) -> None:
+    """
+    Создает сжатую версию контекстного файла.
+    
+    Args:
+        input_path: Путь к исходному файлу
+        output_path: Путь к сжатому файлу
+        min_length: Минимальная длина сообщения
+        max_length: Максимальная длина сообщения
+    """
+    input_size, input_chars = get_file_stats(input_path)
+    lines_count = process_chat_log(input_path, output_path, min_length, max_length)
+    output_size, output_chars = get_file_stats(output_path)
+    
+    compression_percent = ((input_size - output_size) / input_size) * 100 if input_size > 0 else 0
+    char_compression_percent = ((input_chars - output_chars) / input_chars) * 100 if input_chars > 0 else 0
+    
+    logger.info(f"Сжатие {input_path.name}: -{compression_percent:.1f}% размер, -{char_compression_percent:.1f}% символов")
 
 def parse_date_argument(date_arg: str) -> Tuple[datetime, datetime]:
     """
@@ -105,6 +184,7 @@ def generate_context_report(
     compress: bool = False,
     split_by_days: bool = False,
     max_workers: int = 2,
+    batch_size: int = 10000,
     min_length: int = 5,
     max_length: int = 250
 ) -> None:
@@ -119,6 +199,7 @@ def generate_context_report(
         compress: Если True, создает дополнительно сжатую версию
         split_by_days: Если True и date_arg содержит период, создает отдельный файл для каждого дня
         max_workers: Количество потоков для параллельной обработки в режиме split (по умолчанию 2, максимум 100)
+        batch_size: Размер батча сообщений для обработки (по умолчанию 10000 строк)
         min_length: Минимальная длина сообщения для сжатой версии
         max_length: Максимальная длина сообщения для сжатой версии
     """
@@ -130,6 +211,12 @@ def generate_context_report(
         except ValueError as e:
             logger.error(f"Ошибка парсинга периода: {e}")
             raise
+        
+        # Загружаем JSON один раз для всех потоков
+        logger.info(f"Загрузка данных из {input_path}")
+        data = utils.load_json(input_path)
+        msgs = data.get("messages", [])
+        logger.info(f"Загружено {len(msgs)} сообщений")
         
         # Генерируем список всех дней в периоде
         current_date = start_date.date()
@@ -144,42 +231,97 @@ def generate_context_report(
         # Ограничиваем количество потоков: не более 100 и не более количества дней
         actual_workers = min(max_workers, total_days, 100)
         
-        logger.info(f"Обработка {total_days} дней в {actual_workers} потоках")
+        logger.info(f"Обработка {total_days} дней в {actual_workers} потоках (батчами по {batch_size} сообщений)")
         
-        # Функция для обработки одного дня
-        def process_single_day(date_str: str) -> Tuple[str, bool, Optional[str]]:
+        # Обрабатываем сообщения батчами для экономии памяти
+        # Сначала фильтруем все сообщения по дням в батчах
+        logger.info(f"Фильтрация сообщений по дням (батчами по {batch_size} сообщений)")
+        
+        # Словарь для хранения сообщений по дням
+        messages_by_day = defaultdict(list)
+        
+        # Обрабатываем сообщения батчами
+        total_batches = (len(msgs) + batch_size - 1) // batch_size
+        for batch_idx in range(0, len(msgs), batch_size):
+            batch_num = batch_idx // batch_size + 1
+            msg_batch = msgs[batch_idx:batch_idx + batch_size]
+            logger.info(f"Обработка батча {batch_num}/{total_batches} ({len(msg_batch)} сообщений)")
+            
+            # Фильтруем сообщения из текущего батча
+            for m in msg_batch:
+                meta = m.get("meta_norm")
+                if not meta:
+                    continue
+                
+                date_norm = meta.get("date_norm")
+                msg_date = extract_date_from_norm(date_norm)
+                
+                if msg_date is None:
+                    continue
+                
+                # Определяем, к какому дню относится сообщение
+                msg_day_str = msg_date.strftime("%Y-%m-%d")
+                
+                # Проверяем, входит ли этот день в наш период
+                if msg_day_str in days_list:
+                    from_name = m.get("from", "Unknown")
+                    text_plain = meta.get("text_plain", "")
+                    
+                    if not text_plain or not text_plain.strip():
+                        continue
+                    
+                    messages_by_day[msg_day_str].append({
+                        "from": from_name,
+                        "date_norm": date_norm,
+                        "text_plain": text_plain,
+                        "msg_date": msg_date
+                    })
+        
+        logger.info(f"Фильтрация завершена. Найдено сообщений по дням:")
+        for day_str in sorted(messages_by_day.keys()):
+            logger.info(f"  {day_str}: {len(messages_by_day[day_str])} сообщений")
+        
+        # Функция для записи одного дня
+        def write_single_day(date_str: str, filtered_messages: list) -> Tuple[str, bool, Optional[str]]:
             """
-            Обрабатывает один день и возвращает результат.
+            Записывает сообщения для одного дня в файл.
             Returns: (date_str, success, error_message)
             """
             try:
-                logger.info(f"Начало обработки дня: {date_str}")
-                generate_context_report(
-                    input_path=input_path,
-                    output_path=output_path,
-                    date_arg=date_str,
-                    compress=compress,
-                    split_by_days=False,  # Отключаем split для вложенных вызовов
-                    max_workers=1,  # Для вложенных вызовов не используем многопоточность
-                    min_length=min_length,
-                    max_length=max_length
-                )
-                logger.info(f"Завершена обработка дня: {date_str}")
+                # Сортируем по дате
+                filtered_messages.sort(key=lambda x: x["msg_date"])
+                
+                # Создаем файл
+                tool_output_dir = utils.OUT_DIR / "context"
+                tool_output_dir.mkdir(parents=True, exist_ok=True)
+                txt_path = tool_output_dir / f"context_{date_str}.txt"
+                
+                _write_context_file(txt_path, filtered_messages)
+                
+                # Если нужна сжатая версия
+                if compress:
+                    compressed_path = tool_output_dir / f"context_{date_str}_compressed.txt"
+                    _compress_context_file(txt_path, compressed_path, min_length, max_length)
+                
+                logger.info(f"Завершена обработка дня: {date_str} ({len(filtered_messages)} сообщений)")
                 return (date_str, True, None)
             except Exception as e:
                 error_msg = f"Ошибка при обработке дня {date_str}: {e}"
                 logger.error(error_msg)
                 return (date_str, False, error_msg)
         
-        # Параллельная обработка
+        # Параллельная запись файлов
+        logger.info(f"Запись файлов в {actual_workers} потоках")
         completed = 0
         failed = 0
         errors = []
         
         with ThreadPoolExecutor(max_workers=actual_workers) as executor:
-            # Отправляем все задачи
-            future_to_date = {executor.submit(process_single_day, date_str): date_str 
-                            for date_str in days_list}
+            # Отправляем задачи для записи файлов
+            future_to_date = {
+                executor.submit(write_single_day, date_str, messages_by_day.get(date_str, [])): date_str 
+                for date_str in days_list
+            }
             
             # Собираем результаты по мере завершения
             for future in as_completed(future_to_date):
@@ -203,6 +345,7 @@ def generate_context_report(
             for error in errors:
                 logger.warning(f"  - {error}")
         logger.info(f"Использовано потоков: {actual_workers}")
+        logger.info(f"Размер батча: {batch_size} сообщений")
         logger.info(f"{'='*60}")
         return
     
@@ -268,54 +411,7 @@ def generate_context_report(
     txt_path = tool_output_dir / f"context_{date_str}.txt"
     
     try:
-        with open(txt_path, "w", encoding="utf-8") as f:
-            if not filtered_messages:
-                return
-            
-            # Группируем сообщения от одного пользователя, идущие подряд
-            # Считаем "стеной" сообщения от одного пользователя с интервалом < 5 минут
-            WALL_THRESHOLD = timedelta(minutes=5)
-            
-            current_group = None
-            
-            for msg in filtered_messages:
-                from_name = msg["from"]
-                date_formatted = format_date_for_output(msg["date_norm"])
-                text_plain = msg["text_plain"]
-                msg_date = msg["msg_date"]
-                
-                # Проверяем, можно ли добавить к текущей группе
-                if current_group is not None:
-                    last_msg_date = current_group["last_date"]
-                    time_diff = msg_date - last_msg_date
-                    
-                    # Если тот же пользователь и разница < порога - добавляем в группу
-                    if (current_group["from"] == from_name and 
-                        time_diff < WALL_THRESHOLD):
-                        current_group["texts"].append(text_plain)
-                        current_group["last_date"] = msg_date
-                        continue
-                    else:
-                        # Завершаем текущую группу и выводим
-                        f.write(f"{current_group['from']} {current_group['date']}\n")
-                        for text in current_group["texts"]:
-                            f.write(f'"{text}"\n')
-                        f.write("\n")
-                
-                # Начинаем новую группу
-                current_group = {
-                    "from": from_name,
-                    "date": date_formatted,
-                    "texts": [text_plain],
-                    "last_date": msg_date
-                }
-            
-            # Выводим последнюю группу
-            if current_group is not None:
-                f.write(f"{current_group['from']} {current_group['date']}\n")
-                for text in current_group["texts"]:
-                    f.write(f'"{text}"\n\n')
-        
+        _write_context_file(txt_path, filtered_messages)
         logger.info(f"Контекстный отчет сохранен: {txt_path}")
         
         # Если указан флаг compress, создаем сжатую версию
@@ -329,7 +425,7 @@ def generate_context_report(
             input_size, input_chars = get_file_stats(txt_path)
             
             # Сжимаем файл
-            lines_count = process_chat_log(txt_path, compressed_path, min_length, max_length)
+            _compress_context_file(txt_path, compressed_path, min_length, max_length)
             
             # Получаем статистику сжатого файла
             output_size, output_chars = get_file_stats(compressed_path)
@@ -350,7 +446,6 @@ def generate_context_report(
             logger.info(f"Сокращение:")
             logger.info(f"  Размер: -{input_size - output_size:,} байт ({compression_percent:.2f}%)")
             logger.info(f"  Символов: -{input_chars - output_chars:,} ({char_compression_percent:.2f}%)")
-            logger.info(f"  Строк: {lines_count}")
             logger.info(f"{'='*60}")
             logger.info(f"Сжатый контекст сохранен: {compressed_path}")
             logger.info(f"{'='*60}")
