@@ -68,11 +68,11 @@ def main():
 
     p9 = sub.add_parser("context", help="Текстовая история сообщений за период -> /output/context/context_*.txt")
     p9.add_argument("--date", type=str, required=True, help="Дата или период: -1 (вчера), YYYY-MM-DD (день), YYYY-MM-DD_YYYY-MM-DD (период)")
-    p9.add_argument("--input", type=Path, help="Путь к нормализованному JSON (опционально)")
-    p9.add_argument("--zip", action="store_true", help="Создать сжатую версию контекста")
-    p9.add_argument("--no-save", action="store_true", help="Не сохранять несжатую версию (работает только с --zip)")
-    p9.add_argument("--split", action="store_true", help="Разбить период на отдельные файлы для каждого дня (работает только с периодом)")
-    p9.add_argument("--threads", type=int, default=2, help="Количество потоков для режима --split (по умолчанию 2, максимум 100)")
+    p9.add_argument("-i", "--input", type=Path, help="Путь к нормализованному JSON (опционально)")
+    p9.add_argument("--compress", action="store_true", help="Создать сжатую версию контекста")
+    p9.add_argument("--no-save", action="store_true", help="Не сохранять несжатую версию (работает только с --compress)")
+    p9.add_argument("-s", "--split", action="store_true", help="Разбить период на отдельные файлы для каждого дня (работает только с периодом)")
+    p9.add_argument("-t", "--threads", type=int, default=2, help="Количество потоков для режима --split (по умолчанию 2, максимум 100)")
     p9.add_argument("--batch-size", type=int, default=10000, help="Размер батча сообщений для обработки в режиме --split (по умолчанию 10000 строк)")
     p9.add_argument("--min", type=int, default=5, help="Минимальная длина сообщения для сжатой версии (по умолчанию 5)")
     p9.add_argument("--max", type=int, default=250, help="Максимальная длина сообщения для сжатой версии (по умолчанию 250)")
@@ -121,7 +121,7 @@ def main():
             src, 
             out_file, 
             args.date,
-            compress=args.zip,
+            compress=args.compress,
             no_save_uncompressed=args.no_save,
             split_by_days=args.split,
             max_workers=args.threads,
