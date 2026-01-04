@@ -103,7 +103,7 @@ def _compress_context_file(
     compression_percent = ((input_size - output_size) / input_size) * 100 if input_size > 0 else 0
     char_compression_percent = ((input_chars - output_chars) / input_chars) * 100 if input_chars > 0 else 0
     
-    logger.info(f"Сжатие {input_path.name}: -{compression_percent:.1f}% размер, -{char_compression_percent:.1f}% символов")
+    logger.debug(f"Сжатие {input_path.name}: -{compression_percent:.1f}% размер, -{char_compression_percent:.1f}% символов")
 
 def parse_date_argument(date_arg: str) -> Tuple[datetime, datetime]:
     """
@@ -182,6 +182,7 @@ def generate_context_report(
     output_path: Path, 
     date_arg: str,
     compress: bool = False,
+    no_save_uncompressed: bool = False,
     split_by_days: bool = False,
     max_workers: int = 2,
     batch_size: int = 10000,
@@ -197,6 +198,7 @@ def generate_context_report(
         output_path: Путь для сохранения (опционально, формируется автоматически)
         date_arg: Аргумент даты (-1, YYYY-MM-DD, YYYY-MM-DD_YYYY-MM-DD)
         compress: Если True, создает дополнительно сжатую версию
+        no_save_uncompressed: Если True и compress=True, не сохраняет несжатую версию
         split_by_days: Если True и date_arg содержит период, создает отдельный файл для каждого дня
         max_workers: Количество потоков для параллельной обработки в режиме split (по умолчанию 2, максимум 100)
         batch_size: Размер батча сообщений для обработки (по умолчанию 10000 строк)
@@ -302,8 +304,13 @@ def generate_context_report(
                 if compress:
                     compressed_path = tool_output_dir / f"context_{date_str}_compressed.txt"
                     _compress_context_file(txt_path, compressed_path, min_length, max_length)
+                    
+                    # Если флаг no_save_uncompressed установлен, удаляем несжатую версию
+                    if no_save_uncompressed:
+                        txt_path.unlink()
+                        logger.debug(f"Несжатая версия удалена: {txt_path.name}")
                 
-                logger.info(f"Завершена обработка дня: {date_str} ({len(filtered_messages)} сообщений)")
+                logger.debug(f"Завершена обработка дня: {date_str} ({len(filtered_messages)} сообщений)")
                 return (date_str, True, None)
             except Exception as e:
                 error_msg = f"Ошибка при обработке дня {date_str}: {e}"
@@ -449,6 +456,11 @@ def generate_context_report(
             logger.info(f"{'='*60}")
             logger.info(f"Сжатый контекст сохранен: {compressed_path}")
             logger.info(f"{'='*60}")
+            
+            # Если флаг no_save_uncompressed установлен, удаляем несжатую версию
+            if no_save_uncompressed:
+                txt_path.unlink()
+                logger.debug(f"Несжатая версия удалена: {txt_path}")
         
     except Exception as e:
         logger.error(f"Ошибка при создании TXT файла: {e}")

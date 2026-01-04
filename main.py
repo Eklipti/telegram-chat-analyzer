@@ -70,6 +70,7 @@ def main():
     p9.add_argument("--date", type=str, required=True, help="Дата или период: -1 (вчера), YYYY-MM-DD (день), YYYY-MM-DD_YYYY-MM-DD (период)")
     p9.add_argument("--input", type=Path, help="Путь к нормализованному JSON (опционально)")
     p9.add_argument("--zip", action="store_true", help="Создать сжатую версию контекста")
+    p9.add_argument("--no-save", action="store_true", help="Не сохранять несжатую версию (работает только с --zip)")
     p9.add_argument("--split", action="store_true", help="Разбить период на отдельные файлы для каждого дня (работает только с периодом)")
     p9.add_argument("--threads", type=int, default=2, help="Количество потоков для режима --split (по умолчанию 2, максимум 100)")
     p9.add_argument("--batch-size", type=int, default=10000, help="Размер батча сообщений для обработки в режиме --split (по умолчанию 10000 строк)")
@@ -121,6 +122,7 @@ def main():
             out_file, 
             args.date,
             compress=args.zip,
+            no_save_uncompressed=args.no_save,
             split_by_days=args.split,
             max_workers=args.threads,
             batch_size=args.batch_size,
