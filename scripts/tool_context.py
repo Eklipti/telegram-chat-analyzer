@@ -290,6 +290,10 @@ def generate_context_report(
             Returns: (date_str, success, error_message)
             """
             try:
+                if not filtered_messages:
+                    logger.debug(f"День {date_str}: сообщений не найдено, пропускаем")
+                    return (date_str, True, None)
+                
                 # Сортируем по дате
                 filtered_messages.sort(key=lambda x: x["msg_date"])
                 
@@ -301,12 +305,12 @@ def generate_context_report(
                 _write_context_file(txt_path, filtered_messages)
                 
                 # Если нужна сжатая версия
-                if compress:
+                if compress and txt_path.exists():
                     compressed_path = tool_output_dir / f"context_{date_str}_compressed.txt"
                     _compress_context_file(txt_path, compressed_path, min_length, max_length)
                     
                     # Если флаг no_save_uncompressed установлен, удаляем несжатую версию
-                    if no_save_uncompressed:
+                    if no_save_uncompressed and txt_path.exists():
                         txt_path.unlink()
                         logger.debug(f"Несжатая версия удалена: {txt_path.name}")
                 
@@ -419,10 +423,15 @@ def generate_context_report(
     
     try:
         _write_context_file(txt_path, filtered_messages)
-        logger.info(f"Контекстный отчет сохранен: {txt_path}")
+        
+        if txt_path.exists():
+            logger.info(f"Контекстный отчет сохранен: {txt_path}")
+        else:
+            logger.warning(f"Файл не создан: за указанный период сообщений не найдено")
+            return
         
         # Если указан флаг compress, создаем сжатую версию
-        if compress:
+        if compress and txt_path.exists():
             compressed_path = tool_output_dir / f"context_{date_str}_compressed.txt"
             logger.info(f"Создание сжатой версии контекста...")
             logger.info(f"Минимальная длина сообщения: {min_length} символов")
@@ -458,7 +467,7 @@ def generate_context_report(
             logger.info(f"{'='*60}")
             
             # Если флаг no_save_uncompressed установлен, удаляем несжатую версию
-            if no_save_uncompressed:
+            if no_save_uncompressed and txt_path.exists():
                 txt_path.unlink()
                 logger.debug(f"Несжатая версия удалена: {txt_path}")
         
