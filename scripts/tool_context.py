@@ -104,6 +104,7 @@ def generate_context_report(
     date_arg: str,
     compress: bool = False,
     split_by_days: bool = False,
+    max_workers: int = 2,
     min_length: int = 5,
     max_length: int = 250
 ) -> None:
@@ -117,6 +118,7 @@ def generate_context_report(
         date_arg: Аргумент даты (-1, YYYY-MM-DD, YYYY-MM-DD_YYYY-MM-DD)
         compress: Если True, создает дополнительно сжатую версию
         split_by_days: Если True и date_arg содержит период, создает отдельный файл для каждого дня
+        max_workers: Количество потоков для параллельной обработки в режиме split (по умолчанию 2, максимум 100)
         min_length: Минимальная длина сообщения для сжатой версии
         max_length: Максимальная длина сообщения для сжатой версии
     """
@@ -139,10 +141,10 @@ def generate_context_report(
             current_date += timedelta(days=1)
         
         total_days = len(days_list)
-        # Ограничиваем количество потоков до 100
-        max_workers = min(total_days, 100)
+        # Ограничиваем количество потоков: не более 100 и не более количества дней
+        actual_workers = min(max_workers, total_days, 100)
         
-        logger.info(f"Обработка {total_days} дней в {max_workers} потоках")
+        logger.info(f"Обработка {total_days} дней в {actual_workers} потоках")
         
         # Функция для обработки одного дня
         def process_single_day(date_str: str) -> Tuple[str, bool, Optional[str]]:
@@ -158,6 +160,7 @@ def generate_context_report(
                     date_arg=date_str,
                     compress=compress,
                     split_by_days=False,  # Отключаем split для вложенных вызовов
+                    max_workers=1,  # Для вложенных вызовов не используем многопоточность
                     min_length=min_length,
                     max_length=max_length
                 )
@@ -173,7 +176,7 @@ def generate_context_report(
         failed = 0
         errors = []
         
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        with ThreadPoolExecutor(max_workers=actual_workers) as executor:
             # Отправляем все задачи
             future_to_date = {executor.submit(process_single_day, date_str): date_str 
                             for date_str in days_list}
@@ -199,7 +202,7 @@ def generate_context_report(
             logger.warning(f"Ошибок: {failed}")
             for error in errors:
                 logger.warning(f"  - {error}")
-        logger.info(f"Использовано потоков: {max_workers}")
+        logger.info(f"Использовано потоков: {actual_workers}")
         logger.info(f"{'='*60}")
         return
     
