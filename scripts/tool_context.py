@@ -21,6 +21,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
 from . import utils
+from .utils_compress_chat import process_chat_log, get_file_stats
 
 logger = logging.getLogger(__name__)
 
@@ -96,10 +97,25 @@ def format_date_for_output(date_norm: Optional[str]) -> str:
     except (ValueError, AttributeError):
         return "[неизвестная дата]"
 
-def generate_context_report(input_path: Path, output_path: Path, date_arg: str) -> None:
+def generate_context_report(
+    input_path: Path, 
+    output_path: Path, 
+    date_arg: str,
+    compress: bool = False,
+    min_length: int = 5,
+    max_length: int = 250
+) -> None:
     """
     Генерирует текстовый отчет с историей сообщений за указанный период.
     Использует нормализованный JSON ([0].json).
+    
+    Args:
+        input_path: Путь к нормализованному JSON
+        output_path: Путь для сохранения (опционально, формируется автоматически)
+        date_arg: Аргумент даты (-1, YYYY-MM-DD, YYYY-MM-DD_YYYY-MM-DD)
+        compress: Если True, создает дополнительно сжатую версию
+        min_length: Минимальная длина сообщения для сжатой версии
+        max_length: Максимальная длина сообщения для сжатой версии
     """
     data = utils.load_json(input_path)
     msgs = data.get("messages", [])
@@ -212,6 +228,43 @@ def generate_context_report(input_path: Path, output_path: Path, date_arg: str) 
                     f.write(f'"{text}"\n\n')
         
         logger.info(f"Контекстный отчет сохранен: {txt_path}")
+        
+        # Если указан флаг compress, создаем сжатую версию
+        if compress:
+            compressed_path = tool_output_dir / f"context_{date_str}_compressed.txt"
+            logger.info(f"Создание сжатой версии контекста...")
+            logger.info(f"Минимальная длина сообщения: {min_length} символов")
+            logger.info(f"Максимальная длина сообщения: {max_length} символов")
+            
+            # Получаем статистику исходного файла
+            input_size, input_chars = get_file_stats(txt_path)
+            
+            # Сжимаем файл
+            lines_count = process_chat_log(txt_path, compressed_path, min_length, max_length)
+            
+            # Получаем статистику сжатого файла
+            output_size, output_chars = get_file_stats(compressed_path)
+            
+            # Вычисляем процент сжатия
+            compression_percent = ((input_size - output_size) / input_size) * 100 if input_size > 0 else 0
+            char_compression_percent = ((input_chars - output_chars) / input_chars) * 100 if input_chars > 0 else 0
+            
+            logger.info(f"{'='*60}")
+            logger.info(f"СТАТИСТИКА СЖАТИЯ:")
+            logger.info(f"{'='*60}")
+            logger.info(f"Исходный файл:")
+            logger.info(f"  Размер: {input_size:,} байт ({input_size / 1024:.2f} КБ)")
+            logger.info(f"  Символов: {input_chars:,}")
+            logger.info(f"Сжатый файл:")
+            logger.info(f"  Размер: {output_size:,} байт ({output_size / 1024:.2f} КБ)")
+            logger.info(f"  Символов: {output_chars:,}")
+            logger.info(f"Сокращение:")
+            logger.info(f"  Размер: -{input_size - output_size:,} байт ({compression_percent:.2f}%)")
+            logger.info(f"  Символов: -{input_chars - output_chars:,} ({char_compression_percent:.2f}%)")
+            logger.info(f"  Строк: {lines_count}")
+            logger.info(f"{'='*60}")
+            logger.info(f"Сжатый контекст сохранен: {compressed_path}")
+            logger.info(f"{'='*60}")
         
     except Exception as e:
         logger.error(f"Ошибка при создании TXT файла: {e}")

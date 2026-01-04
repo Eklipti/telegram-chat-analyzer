@@ -69,6 +69,9 @@ def main():
     p9 = sub.add_parser("context", help="Текстовая история сообщений за период -> /output/context/context_*.txt")
     p9.add_argument("--date", type=str, required=True, help="Дата или период: -1 (вчера), YYYY-MM-DD (день), YYYY-MM-DD_YYYY-MM-DD (период)")
     p9.add_argument("--input", type=Path, help="Путь к нормализованному JSON (опционально)")
+    p9.add_argument("--zip", action="store_true", help="Создать сжатую версию контекста")
+    p9.add_argument("--min", type=int, default=5, help="Минимальная длина сообщения для сжатой версии (по умолчанию 5)")
+    p9.add_argument("--max", type=int, default=250, help="Максимальная длина сообщения для сжатой версии (по умолчанию 250)")
 
     p10 = sub.add_parser("excel", help="Excel-отчёт -> /output/report.xlsx")
     p10.add_argument("--input", type=Path, help="Входной JSON (нормализованный или сырой)")
@@ -110,7 +113,14 @@ def main():
         # но фактический путь формируется внутри функции на основе даты
         out_file = None
 
-        generate_context_report(src, out_file, args.date)
+        generate_context_report(
+            src, 
+            out_file, 
+            args.date,
+            compress=args.zip,
+            min_length=args.min,
+            max_length=args.max
+        )
 
     elif args.cmd == "excel":
         try:
