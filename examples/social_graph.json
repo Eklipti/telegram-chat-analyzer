@@ -1,0 +1,83 @@
+{
+  "chat_id": 9999999999,
+  "source_file_path": "/home/eme/Документы/PaP/telegram-chat-analyzer/examples/raw[0].json",
+  "source_file_name": "raw[0].json",
+  "generation_timestamp": 1769768534,
+  "summary": {
+    "total_mentions": 0,
+    "unique_mentioned_users": 0,
+    "total_replies": 4,
+    "unique_repliers": 2,
+    "unique_quoted_users": 2
+  },
+  "mention_matrix": {
+    "description": "Кого чаще всего упоминают (@username или text_mention)",
+    "top_mentioned": []
+  },
+  "reply_matrix": {
+    "description": "Кто кому чаще отвечает (таблица пар)",
+    "top_pairs": [
+      {
+        "from_id": "userA123456789",
+        "from_username": "Пользователь A",
+        "to_id": "userB987654321",
+        "to_username": "Пользователь B",
+        "count": 2
+      },
+      {
+        "from_id": "userB987654321",
+        "from_username": "Пользователь B",
+        "to_id": "userA123456789",
+        "to_username": "Пользователь A",
+        "count": 2
+      }
+    ]
+  },
+  "quotability_index": {
+    "description": "На чьи сообщения чаще всего отвечают",
+    "top_quoted": [
+      {
+        "user_id": "userB987654321",
+        "username": "Пользователь B",
+        "replies_received": 2
+      },
+      {
+        "user_id": "userA123456789",
+        "username": "Пользователь A",
+        "replies_received": 2
+      }
+    ]
+  },
+  "voice_lovers": {
+    "description": "Топ пользователей по суммарной длительности голосовых сообщений",
+    "top_users": []
+  },
+  "external_links": {
+    "description": "Какие домены чаще всего упоминаются в чате",
+    "top_domains": []
+  },
+  "caps_screamers": {
+    "description": "Кто злоупотребляет CAPS LOCK",
+    "top_users": []
+  },
+  "formatting_stylists": {
+    "description": "Кто чаще использует форматирование текста",
+    "top_users": []
+  },
+  "vocabulary_diversity": {
+    "description": "Лексическое разнообразие по методу MATTR (Moving-Average Type-Token Ratio). Среднее разнообразие в скользящем окне 1000 слов. Учитывается лемматизация и фильтрация стоп-слов (минимум 1000 сообщений и 1000 слов)",
+    "top_users": []
+  },
+  "reaction_speed": {
+    "description": "Медианное время ответа на сообщения через reply для каждого пользователя (топ-10 самых быстрых, минимум 1000 сообщений)",
+    "top_users": []
+  },
+  "owls_vs_larks": {
+    "description": "Категоризация пользователей по времени активности. Совы (ночь 01:00-06:00 > 30%), Жаворонки (день 09:00-17:00 > 50%), минимум 1000 сообщений",
+    "users": []
+  },
+  "self_censorship": {
+    "description": "Индекс самоцензуры - кто чаще редактирует свои сообщения после отправки (топ-10, минимум 1000 сообщений)",
+    "top_users": []
+  }
+}
