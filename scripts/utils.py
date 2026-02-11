@@ -106,22 +106,18 @@ def find_input_json(explicit: Optional[Path]) -> Path:
     return cands[0]
 
 def find_normalized_json(explicit: Optional[Path]) -> Path:
-    """Ищет самый новый [0].json в /telegram/exports/processed_json/."""
+    """Ищет самый новый .json в /telegram/exports/processed_json/ (нормализованные файлы именуются по хешу: <hash>.json)."""
     if explicit:
         if not explicit.exists(): raise FileNotFoundError(explicit)
         return explicit
 
-    PROCESSED_JSON_DIR.mkdir(parents=True, exist_ok=True) 
-    
-    # Используем glob для всех .json файлов, затем фильтруем по имени, заканчивающемуся на [0].json
-    # квадратные скобки в glob имеют специальное значение
-    all_json = PROCESSED_JSON_DIR.glob("*.json")
-    cands = [p for p in all_json if p.name.endswith("[0].json")]
+    PROCESSED_JSON_DIR.mkdir(parents=True, exist_ok=True)
+
+    cands = sorted(PROCESSED_JSON_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
     if not cands:
         raise FileNotFoundError(
-            f"Не найден нормализованный файл ([0].json) в {PROCESSED_JSON_DIR}. "
+            f"Не найден нормализованный файл (.json) в {PROCESSED_JSON_DIR}. "
         )
-    cands.sort(key=lambda p: p.stat().st_mtime, reverse=True)
     return cands[0]
 
 def load_json(path: Path) -> dict[str, Any]:

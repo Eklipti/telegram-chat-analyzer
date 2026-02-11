@@ -43,7 +43,8 @@ def normalize_json(input_path: Path, output_dir: Optional[Path]) -> Path:
     out_dir = output_dir or utils.PROCESSED_JSON_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    dst = utils.replace_shift_with_zero(out_dir / input_path.name)
+    hprefix = utils.file_sha256(input_path)[:10]
+    dst = out_dir / f"{hprefix}.json"
 
     data = utils.load_json(input_path)
     data["original_file_name"] = input_path.name
