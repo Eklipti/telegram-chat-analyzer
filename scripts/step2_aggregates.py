@@ -16,13 +16,22 @@
 # см. <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
+import logging
+import time
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Dict, Optional
 from . import utils
 from datetime import datetime
 
+logger = logging.getLogger(__name__)
+
+
 def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
+    t_start = datetime.now()
+    t0 = time.perf_counter()
+    logger.info("Начало в %s", t_start.strftime("%Y-%m-%d %H:%M:%S"))
+
     data = utils.load_json(input_0)
     msgs = data.get("messages") or []
     chat_id = data.get("id", "unknown_chat_id")
@@ -257,3 +266,8 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
     }
 
     utils.save_json(out_dir / "all_aggregates.json", final_aggregates)
+
+    t_end = datetime.now()
+    elapsed = time.perf_counter() - t0
+    logger.info("Конец в %s", t_end.strftime("%Y-%m-%d %H:%M:%S"))
+    logger.info("Прошло %.2f с", elapsed)
