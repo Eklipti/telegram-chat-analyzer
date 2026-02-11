@@ -25,15 +25,41 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-def normalize_json(input_path: Path, output_dir: Optional[Path]) -> Path:
+def _format_size(size_bytes: int) -> str:
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    if size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    return f"{size_bytes / (1024 * 1024):.1f} MB"
+
+
+def normalize_json(
+    input_path: Path,
+    output_dir: Optional[Path],
+    input_path_origin: Optional[str] = None,
+    force: bool = False,
+) -> Path:
     """
     Нормализует "сырой" JSON-экспорт.
     - Применяет часовой сдвиг из имени файла.
     - "Уплощает" текст в text_plain.
     - Категоризирует медиа в media_cat.
     - Складывает все новые поля в m["meta_norm"] = {...}
+
+    input_path_origin: "user" — путь указан пользователем, "auto" — выбран автоматически (самый новый в raw_json).
+    force: если True, перезаписывает существующий нормализованный файл; иначе при существовании dst — пропуск, возврат пути.
     """
-    
+    size_bytes = input_path.stat().st_size
+    logger.info(
+        "Raw JSON: имя=%s, размер=%s",
+        input_path.name,
+        _format_size(size_bytes),
+    )
+    logger.info(
+        "Источник: %s",
+        input_path_origin if input_path_origin else "не указан",
+    )
+
     shift = utils.parse_filename_shift(input_path)
     if shift is None:
         logger.warning(f"Имя файла '{input_path.name}' не содержит часовой сдвиг в формате [number].")
@@ -45,6 +71,13 @@ def normalize_json(input_path: Path, output_dir: Optional[Path]) -> Path:
 
     hprefix = utils.file_sha256(input_path)[:10]
     dst = out_dir / f"{hprefix}.json"
+    if dst.exists():
+        if not force:
+            logger.info("Готовый нормализованный файл уже существует: %s, пропуск (--force для перезаписи).", dst.name)
+            return dst
+        logger.info("Готовый нормализованный файл уже существует: %s, перезапись.", dst.name)
+    else:
+        logger.info("Создание нового нормализованного файла: %s", dst.name)
 
     data = utils.load_json(input_path)
     data["original_file_name"] = input_path.name

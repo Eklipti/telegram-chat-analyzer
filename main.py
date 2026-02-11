@@ -42,6 +42,7 @@ def main():
 
     p2 = sub.add_parser("normalize", help="Нормализация [raw] -> [processed]")
     p2.add_argument("--input", type=Path)
+    p2.add_argument("--force", action="store_true", help="Перезаписать существующий нормализованный файл")
 
     p3 = sub.add_parser("agg", help="Агрегаты (JSON) -> /output/agg")
     p3.add_argument("--input", type=Path)
@@ -57,6 +58,7 @@ def main():
 
     p6 = sub.add_parser("all", help="Полный конвейер: normalize -> agg -> social -> html -> mobile -> excel")
     p6.add_argument("--input", type=Path)
+    p6.add_argument("--force", action="store_true", help="Перезаписать существующий нормализованный файл на шаге normalize")
 
     p7 = sub.add_parser("social", help="Социальный граф и взаимодействия -> /output/agg/social_graph.json")
     p7.add_argument("--input", type=Path, help="Входной JSON (нормализованный)")
@@ -97,7 +99,7 @@ def main():
         except FileNotFoundError:
             logger.warning("Нормализованный файл не найден. Ищем сырой файл для обработки...")
             raw = utils.find_input_json(args.input)
-            src = normalize_json(raw, None) # normalize вернет путь к созданному файлу
+            src = normalize_json(raw, None, "user" if args.input else "auto")
             logger.info(f"Файл нормализован: {src}")
 
         utils.init_hashed_output_dir(src)
@@ -112,7 +114,7 @@ def main():
         except FileNotFoundError:
             logger.warning("Нормализованный файл не найден. Ищем сырой файл для обработки...")
             raw = utils.find_input_json(args.input)
-            src = normalize_json(raw, None)
+            src = normalize_json(raw, None, "user" if args.input else "auto")
             logger.info(f"Файл нормализован: {src}")
 
         utils.init_hashed_output_dir(src)
@@ -140,7 +142,7 @@ def main():
         except FileNotFoundError:
             logger.warning("Нормализованный файл не найден. Ищем сырой файл для обработки...")
             raw = utils.find_input_json(args.input)
-            src = normalize_json(raw, None)
+            src = normalize_json(raw, None, "user" if args.input else "auto")
             logger.info(f"Файл нормализован: {src}")
 
         utils.init_hashed_output_dir(src)
@@ -155,14 +157,14 @@ def main():
 
     elif args.cmd == "normalize":
         src = utils.find_input_json(args.input)
-        normalize_json(src, None)
+        normalize_json(src, None, "user" if args.input else "auto", force=getattr(args, "force", False))
 
     elif args.cmd == "agg":
         try:
             src0 = utils.find_normalized_json(args.input)
         except FileNotFoundError:
             raw = utils.find_input_json(args.input)
-            src0 = normalize_json(raw, None)
+            src0 = normalize_json(raw, None, "user" if args.input else "auto")
         utils.init_hashed_output_dir(src0)
         out_dir = args.out_dir or utils.AGG_DIR
         build_aggregates_json(src0, out_dir)
@@ -201,7 +203,7 @@ def main():
 
         logger.info("--- ШАГ 1: Нормализация данных ---")
         try:
-            norm_path = normalize_json(src_raw, None)
+            norm_path = normalize_json(src_raw, None, "user" if args.input else "auto", force=getattr(args, "force", False))
         except Exception as e:
             logger.error(f"--- ОШИБКА: Шаг 1 не удался ---")
             logger.error(e, exc_info=True)
