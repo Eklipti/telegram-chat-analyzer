@@ -11,7 +11,7 @@ python main.py <команда> [аргументы]
 По умолчанию:
 - сырой экспорт ищется в `telegram/exports/raw_json/*.json` (берется самый новый файл);
 - нормализованный файл ищется в `telegram/exports/processed_json/*[0].json` (берется самый новый файл);
-- результаты пишутся в `output/`.
+- результаты пишутся в `output/YYYY_MM_DD_<hash>/`, где `<hash>` — первые 10 символов SHA256 входного JSON (один и тот же файл всегда даёт один и тот же каталог; при явном указании `--out`, `--output`, `--out-dir`, `--agg-dir` используются указанные пути).
 
 ---
 
@@ -29,18 +29,20 @@ python main.py all
 * `--input` (опциональный): путь к сырому JSON-экспорту. Если не указан — берется самый новый файл из `telegram/exports/raw_json/`.
 
 ### Краткий пример результата
-После выполнения появятся (пути по умолчанию):
+После выполнения появятся (пути по умолчанию, каталог вывода — хешированный):
 * `telegram/exports/processed_json/<имя_файла>[0].json`
-* `output/agg/` (агрегаты + `social_graph.json`)
-* `output/report.html`
-* `output/report.mobile.html`
-* `output/report.xlsx`
+* `output/YYYY_MM_DD_<hash>/agg/` (агрегаты + `social_graph.json`)
+* `output/YYYY_MM_DD_<hash>/report.html`
+* `output/YYYY_MM_DD_<hash>/report.mobile.html`
+* `output/YYYY_MM_DD_<hash>/report.xlsx`
 
 ---
 
 ## 2. Нормализация (normalize)
 
 Нормализует сырой JSON и сохраняет результат в `telegram/exports/processed_json/` (в имени файла часовой сдвиг заменяется на `[0]`).
+
+В корень нормализованного JSON добавляется поле **`original_file_name`** — исходное имя файла (например, `2026_01_week1[+3].json`). Это позволяет однозначно связать результат с источником.
 
 ### Команда запуска
 ```powershell
@@ -63,10 +65,10 @@ python main.py agg
 
 ### Аргументы
 * `--input` (опциональный): путь к нормализованному JSON. Если не указан — берется самый новый файл из `telegram/exports/processed_json/`.
-* `--out-dir` (опциональный): каталог для сохранения агрегатов (по умолчанию `output/agg/`).
+* `--out-dir` (опциональный): каталог для сохранения агрегатов (по умолчанию `output/YYYY_MM_DD_<hash>/agg/`).
 
 ### Краткий пример результата
-В `output/agg/` появится набор JSON, включая (как минимум) `all_aggregates.json`.
+В каталоге вывода `output/YYYY_MM_DD_<hash>/agg/` появится набор JSON, включая (как минимум) `all_aggregates.json`.
 
 ---
 
@@ -81,10 +83,10 @@ python main.py social
 
 ### Аргументы
 * `--input` (опциональный): путь к нормализованному JSON. Если не указан — берется самый новый файл из `telegram/exports/processed_json/`.
-* `--out-dir` (опциональный): каталог для сохранения (по умолчанию `output/agg/`).
+* `--out-dir` (опциональный): каталог для сохранения (по умолчанию `output/YYYY_MM_DD_<hash>/agg/`).
 
 ### Результат
-* `output/agg/social_graph.json`
+* `output/YYYY_MM_DD_<hash>/agg/social_graph.json`
 
 ---
 
@@ -98,7 +100,7 @@ python main.py html
 ```
 
 ### Аргументы
-* `--agg-dir` (опциональный): каталог агрегатов (по умолчанию `output/agg/`).
+* `--agg-dir` (опциональный): каталог агрегатов (по умолчанию `output/agg/`; при запуске команд с входным JSON используется хешированный каталог).
 * `--out` (опциональный): путь к `report.html` (по умолчанию `output/report.html`).
 
 ---
@@ -113,7 +115,7 @@ python main.py mobile
 ```
 
 ### Аргументы
-* `--agg-dir` (опциональный): каталог агрегатов (по умолчанию `output/agg/`).
+* `--agg-dir` (опциональный): каталог агрегатов (по умолчанию `output/agg/`; при запуске команд с входным JSON — хешированный каталог).
 * `--out` (опциональный): путь к `report.mobile.html` (по умолчанию `output/report.mobile.html`).
 
 ---
@@ -129,7 +131,7 @@ python main.py excel
 
 ### Аргументы
 * `--input` (опциональный): путь к нормализованному JSON. Если не указан — берется самый новый файл из `telegram/exports/processed_json/` (или будет создан из сырого).
-* `--out` (опциональный): путь к `report.xlsx` (по умолчанию `output/report.xlsx`).
+* `--out` (опциональный): путь к `report.xlsx` (по умолчанию `output/YYYY_MM_DD_<hash>/report.xlsx`).
 
 ---
 
@@ -144,7 +146,7 @@ python main.py author_and_text
 *(Скрипт автоматически найдет нормализованный файл или создаст его из сырого JSON)*
 
 ### Результат
-В папке `output/author_text/` создаются два файла:
+В папке `output/YYYY_MM_DD_<hash>/author_text/` создаются два файла:
 1.  `author_text_report.json` — структурированные данные для машинной обработки.
 2.  `author_text_report.txt` — читаемый текстовый отчет (топ пользователей + тексты сообщений).
 
@@ -162,10 +164,10 @@ python main.py params
 
 ### Аргументы
 * `--input` (опциональный): путь к сырому JSON.
-* `--output` (опциональный): путь к итоговому `json_params.md` (по умолчанию `output/md/json_params.md`).
+* `--output` (опциональный): путь к итоговому `json_params.md` (по умолчанию `output/YYYY_MM_DD_<hash>/md/json_params.md`).
 
 ### Результат
-* `output/md/json_params.md`
+* `output/YYYY_MM_DD_<hash>/md/json_params.md`
 
 ---
 
@@ -246,6 +248,6 @@ python main.py context --date 2025-12-26 --compress --min 10 --max 200
 ```
 
 ### Результат
-В папке `output/context/` создается:
+В папке `output/YYYY_MM_DD_<hash>/context/` создается:
 * `context_<дата>.txt` — полная текстовая история.
 * `context_<дата>_compressed.txt` — оптимизированная версия.
