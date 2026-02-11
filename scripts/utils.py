@@ -179,8 +179,37 @@ def flatten_text(text_field: Any) -> str:
         return "".join(parts)
     return ""
 
-def sha256_prefix(value: Any, length: int) -> str:
-    if value is None:
-        value = ""
-    s = hashlib.sha256(str(value).encode("utf-8")).hexdigest()
-    return s[:length]
+def file_sha256(path: Path) -> str:
+    """SHA256 файла (полный hex)."""
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def init_hashed_output_dir(input_path: Path, hash_len: int = 10) -> Path:
+    """
+    - считает хеш input_path
+    - создаёт /output/YYYY_MM_DD_{hashprefix}
+    - переназначает OUT_DIR/MD_DIR/AGG_DIR, чтобы все итоги сохранялись туда
+    Возвращает новый OUT_DIR.
+    """
+    global OUT_DIR, MD_DIR, AGG_DIR
+
+    full_hash = file_sha256(input_path)
+    hprefix = full_hash[:hash_len]
+
+    date_part = datetime.now().strftime("%Y_%m_%d")
+    run_out_dir = PROJECT_ROOT / "output" / f"{date_part}_{hprefix}"
+
+    run_out_dir.mkdir(parents=True, exist_ok=True)
+
+    OUT_DIR = run_out_dir
+    MD_DIR = OUT_DIR / "md"
+    AGG_DIR = OUT_DIR / "agg"
+
+    MD_DIR.mkdir(parents=True, exist_ok=True)
+    AGG_DIR.mkdir(parents=True, exist_ok=True)
+
+    return OUT_DIR

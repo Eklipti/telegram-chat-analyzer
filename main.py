@@ -86,6 +86,7 @@ def main():
     if args.cmd == "params":
         from scripts.tool_params import generate_params_md
         src = utils.find_input_json(args.input)
+        utils.init_hashed_output_dir(src)
         out = args.output or (utils.OUT_DIR / "md" / "json_params.md")
         generate_params_md(src, out)
 
@@ -99,6 +100,7 @@ def main():
             src = normalize_json(raw, None) # normalize вернет путь к созданному файлу
             logger.info(f"Файл нормализован: {src}")
 
+        utils.init_hashed_output_dir(src)
         out_file = args.out or (utils.OUT_DIR / "author_text" / "author_text_report.json")
 
         generate_author_text_report(src, out_file)
@@ -113,6 +115,7 @@ def main():
             src = normalize_json(raw, None)
             logger.info(f"Файл нормализован: {src}")
 
+        utils.init_hashed_output_dir(src)
         # output_path используется только для совместимости с сигнатурой функции,
         # но фактический путь формируется внутри функции на основе даты
         out_file = None
@@ -140,6 +143,7 @@ def main():
             src = normalize_json(raw, None)
             logger.info(f"Файл нормализован: {src}")
 
+        utils.init_hashed_output_dir(src)
         out_file = args.out or (utils.OUT_DIR / "report.xlsx")
 
         generate_excel_report(
@@ -154,21 +158,23 @@ def main():
         normalize_json(src, None)
 
     elif args.cmd == "agg":
-        out_dir = args.out_dir or utils.AGG_DIR
         try:
             src0 = utils.find_normalized_json(args.input)
         except FileNotFoundError:
             raw = utils.find_input_json(args.input)
             src0 = normalize_json(raw, None)
+        utils.init_hashed_output_dir(src0)
+        out_dir = args.out_dir or utils.AGG_DIR
         build_aggregates_json(src0, out_dir)
 
     elif args.cmd == "social":
-        out_dir = args.out_dir or utils.AGG_DIR
         try:
             src0 = utils.find_normalized_json(args.input)
         except FileNotFoundError:
             logger.error("Нормализованный файл не найден. Запустите 'normalize' или 'all' сначала.")
             return
+        utils.init_hashed_output_dir(src0)
+        out_dir = args.out_dir or utils.AGG_DIR
         build_social_graph(src0, out_dir)
 
     elif args.cmd == "html":
@@ -190,10 +196,8 @@ def main():
         )
 
     elif args.cmd == "all":
-        utils.AGG_DIR.mkdir(parents=True, exist_ok=True)
-        utils.OUT_DIR.mkdir(parents=True, exist_ok=True)
-
         src_raw = utils.find_input_json(args.input)
+        utils.init_hashed_output_dir(src_raw)
 
         logger.info("--- ШАГ 1: Нормализация данных ---")
         try:
