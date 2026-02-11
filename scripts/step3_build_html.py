@@ -16,10 +16,13 @@
 # см. <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
+import logging
 from pathlib import Path
 from typing import Optional
 import json
 from . import utils
+
+logger = logging.getLogger(__name__)
 
 def _load_json_if_exists(p: Path) -> Optional[dict]:
     try:
@@ -36,13 +39,13 @@ def build_html_report(
     all_agg_path = agg_dir / "all_aggregates.json"
     all_agg = _load_json_if_exists(all_agg_path)
     if not all_agg:
-        print(f"ОШИБКА: Не найден главный файл агрегатов: {all_agg_path}")
+        logger.error("Не найден главный файл агрегатов: %s", all_agg_path)
         all_agg = {}
 
     social_graph_path = agg_dir / "social_graph.json"
     social_graph = _load_json_if_exists(social_graph_path)
     if not social_graph:
-        print(f"ПРЕДУПРЕЖДЕНИЕ: Файл социального графа не найден: {social_graph_path}")
+        logger.warning("Файл социального графа не найден: %s", social_graph_path)
         social_graph = {}
 
     data_blobs = {
@@ -54,10 +57,10 @@ def build_html_report(
         template_path = Path(__file__).parent.parent / "templates" / template_name
         html_template = template_path.read_text(encoding="utf-8")
     except FileNotFoundError:
-        print(f"ОШИБКА: Файл шаблона не найден: {template_path}")
+        logger.error("Файл шаблона не найден: %s", template_path)
         html_template = f"<h1>Ошибка: шаблон не найден</h1><pre>{template_path}</pre>"
     except Exception as e:
-        print(f"ОШИБКА: Не удалось прочитать шаблон: {e}")
+        logger.error("Не удалось прочитать шаблон: %s", e)
         html_template = f"<h1>Ошибка чтения шаблона</h1><pre>{e}</pre>"
 
     html = html_template.replace("__DATA_JSON__", json.dumps(data_blobs, ensure_ascii=False))

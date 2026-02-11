@@ -118,7 +118,7 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
             morph = pymorphy3.MorphAnalyzer()
         except Exception as e:
             logger.warning("Лемматизация недоступна (ошибка инициализации): %s", e)
-    logger.info("Лемматизация: %s", "pymorphy3 используется" if morph else "не используется")
+    logger.info("pymorphy3 используется" if morph else "не используется")
 
     for m in msgs:
         if m.get("type") != "message":

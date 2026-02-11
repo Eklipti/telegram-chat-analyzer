@@ -28,7 +28,6 @@ from pathlib import Path
 from collections import Counter, defaultdict
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Tuple
-from tqdm import tqdm
 from xlsxwriter.utility import xl_rowcol_to_cell
 from . import utils
 
@@ -70,7 +69,7 @@ def normalize_messages(
 
     anomalies = defaultdict(int) 
 
-    for msg in tqdm(src_iter, desc="Чтение нормализованных сообщений (для Excel)", unit="msg"):
+    for msg in src_iter:
         if msg.get("type") != VALID_MESSAGE_TYPE:
             continue
             
@@ -115,8 +114,6 @@ def normalize_messages(
         raise ValueError("После фильтрации не осталось сообщений (возможно, все были сервисными?).")
 
     df = pd.DataFrame(messages)
-    logger.info(f"Аномалии при чтении [0].json (для Excel): {dict(anomalies)}")
-
     return df, dict(anomalies)
 
 # ------------------------------ Метрики и агрегирование ------------------------------
@@ -568,8 +565,6 @@ def write_excel(
         
         ws_pivot.set_column(0, 0, 50)
 
-        logger.info("Excel сохранён: %s", output_path)
-
 
 def generate_excel_report(
     normalized_json_path: Path, 
@@ -582,7 +577,6 @@ def generate_excel_report(
     из нормализованного JSON-файла.
     """
 
-    logger.info("Загрузка нормализованного JSON: %s", normalized_json_path)
     if not normalized_json_path.exists():
         logger.error("Файл не найден: %s", normalized_json_path)
         raise FileNotFoundError(normalized_json_path)
@@ -606,16 +600,7 @@ def generate_excel_report(
     
 
     df, anomalies = normalize_messages(raw, logger)
-
-    logger.info("Расчёт метрик для Excel...")
     metrics = compute_metrics(df)
-    logger.info(
-        "Обработано сообщений: %d; период: %s — %s; участников: %d",
-        metrics["total_messages"],
-        metrics["min_date"],
-        metrics["max_date"],
-        metrics["unique_users"],
-    )
 
     # Передаем 'tz_note' вместо 'tz_shift_hours'
     write_excel(
@@ -627,4 +612,3 @@ def generate_excel_report(
         anomalies=anomalies,
         logger=logger,
     )
-    logger.info("Отчёт Excel сохранён: %s", output_excel_path)

@@ -73,9 +73,9 @@ def normalize_json(
     dst = out_dir / f"{hprefix}.json"
     if dst.exists():
         if not force:
-            logger.info("Готовый нормализованный файл уже существует: %s, пропуск (--force для перезаписи).", dst.name)
+            logger.info("Файл уже существует: %s, пропуск (--force для перезаписи).", dst.name)
             return dst
-        logger.info("Готовый нормализованный файл уже существует: %s, перезапись.", dst.name)
+        logger.info("Файл уже существует: %s, перезапись.", dst.name)
     else:
         logger.info("Создание нового нормализованного файла: %s", dst.name)
 
