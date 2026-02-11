@@ -16,6 +16,7 @@
 # см. <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
+import logging
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Dict, List
@@ -23,6 +24,8 @@ from . import utils
 from datetime import datetime
 import re
 from urllib.parse import urlparse
+
+logger = logging.getLogger(__name__)
 
 try:
     import pymorphy3
@@ -110,14 +113,12 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
     morph = None
     if PYMORPHY_AVAILABLE:
         try:
+            for _name in ("pymorphy3", "pymorphy3.analyzer", "pymorphy3_dicts_ru"):
+                logging.getLogger(_name).setLevel(logging.WARNING)
             morph = pymorphy3.MorphAnalyzer()
-            print("✓ Лемматизация включена (pymorphy3)")
         except Exception as e:
-            print(f"⚠ Лемматизация недоступна (ошибка инициализации): {e}")
-            print("  Анализ продолжится без лемматизации")
-    else:
-        print("⚠ Лемматизация недоступна (pymorphy3 не установлен)")
-        print("  Анализ продолжится без лемматизации")
+            logger.warning("Лемматизация недоступна (ошибка инициализации): %s", e)
+    logger.info("Лемматизация: %s", "pymorphy3 используется" if morph else "не используется")
 
     for m in msgs:
         if m.get("type") != "message":
@@ -433,7 +434,6 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
     unique_mentioners = len(set(uid for uid in mention_counter.keys()))
     unique_repliers = len(reply_matrix)
     
-    # Финальная структура данных
     social_graph_data = {
         "chat_id": chat_id,
         "source_file_path": str(input_json.resolve()),
@@ -504,11 +504,5 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
         }
     }
     
-    # Сохраняем результат
     out_file = out_dir / "social_graph.json"
     utils.save_json(out_file, social_graph_data)
-    
-    print(f"✓ Социальный граф сохранен: {out_file}")
-    print(f"  - Всего упоминаний: {total_mentions}")
-    print(f"  - Всего ответов: {total_replies}")
-    print(f"  - Уникальных цитируемых: {len(quotability_counter)}")
