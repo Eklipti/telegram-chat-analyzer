@@ -46,6 +46,7 @@ def normalize_json(input_path: Path, output_dir: Optional[Path]) -> Path:
     dst = utils.replace_shift_with_zero(out_dir / input_path.name)
 
     data = utils.load_json(input_path)
+    data["original_file_name"] = input_path.name
     msgs = data.get("messages")
     if not isinstance(msgs, list):
         raise ValueError("Ожидается messages[]")
