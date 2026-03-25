@@ -1,20 +1,3 @@
-# Telegram Chat Analyzer
-# Copyright (C) 2025 Eklipti
-#
-# Этот проект — свободное программное обеспечение: вы можете
-# распространять и/или изменять его на условиях
-# Стандартной общественной лицензии GNU (GNU GPL)
-# третьей версии, опубликованной Фондом свободного ПО.
-#
-# Программа распространяется в надежде, что она будет полезной,
-# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
-# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
-# Подробности см. в Стандартной общественной лицензии GNU.
-#
-# Вы должны были получить копию Стандартной общественной
-# лицензии GNU вместе с этой программой. Если это не так,
-# см. <https://www.gnu.org/licenses/>.
-
 import argparse
 import logging
 
@@ -49,12 +32,14 @@ def main():
     p3.add_argument("--out-dir", type=Path)
 
     p4 = sub.add_parser("html", help="Единый HTML-отчёт -> /output/report.html")
+    p4.add_argument("--input", type=Path, help="Входной JSON для определения хэш-папки")
     p4.add_argument("--agg-dir", type=Path, help="Каталог агрегатов (по умолч. /output/agg)")
-    p4.add_argument("--out",     type=Path, help="Путь к report.html (по умолч. /output/report.html)")
+    p4.add_argument("--out", type=Path, help="Путь к report.html (по умолч. /output/report.html)")
 
     p5 = sub.add_parser("mobile", help="Мобильный HTML-отчёт -> /output/report.mobile.html")
+    p5.add_argument("--input", type=Path, help="Входной JSON для определения хэш-папки")
     p5.add_argument("--agg-dir", type=Path, help="Каталог агрегатов (по умолч. /output/agg)")
-    p5.add_argument("--out",     type=Path, help="Путь к report.mobile.html (по умолч. /output/report.mobile.html)")
+    p5.add_argument("--out", type=Path, help="Путь к report.mobile.html (по умолч. /output/report.mobile.html)")
 
     p6 = sub.add_parser("all", help="Полный конвейер: normalize -> agg -> social -> html -> mobile -> excel")
     p6.add_argument("--input", type=Path)
@@ -180,20 +165,34 @@ def main():
         build_social_graph(src0, out_dir)
 
     elif args.cmd == "html":
+        try:
+            src0 = utils.find_normalized_json(args.input)
+        except FileNotFoundError:
+            src0 = utils.find_input_json(args.input)
+        utils.init_hashed_output_dir(src0)
+
         agg_dir = args.agg_dir or utils.AGG_DIR
-        out     = args.out     or (utils.OUT_DIR / "report.html")
+        out = args.out or (utils.OUT_DIR / "report.html")
         build_html_report(
-            agg_dir=agg_dir, 
-            template_name="desktop.html", 
+            all_agg_path=agg_dir / "all_aggregates.json",
+            social_graph_path=agg_dir / "social_graph.json",
+            template_name="desktop.html",
             out_html=out
         )
 
     elif args.cmd == "mobile":
+        try:
+            src0 = utils.find_normalized_json(args.input)
+        except FileNotFoundError:
+            src0 = utils.find_input_json(args.input)
+        utils.init_hashed_output_dir(src0)
+
         agg_dir = args.agg_dir or utils.AGG_DIR
-        out     = args.out     or (utils.OUT_DIR / "report.mobile.html")
+        out = args.out or (utils.OUT_DIR / "report.mobile.html")
         build_html_report(
-            agg_dir=agg_dir, 
-            template_name="mobile.html", 
+            all_agg_path=agg_dir / "all_aggregates.json",
+            social_graph_path=agg_dir / "social_graph.json",
+            template_name="mobile.html",
             out_html=out
         )
 
@@ -217,22 +216,16 @@ def main():
 
         logger.info("--- ШАГ 3: Генерация HTML-отчётов ---")
         build_html_report(
-            agg_dir=utils.AGG_DIR, 
-            template_name="desktop.html", 
+            all_agg_path=utils.AGG_DIR / "all_aggregates.json",
+            social_graph_path=utils.AGG_DIR / "social_graph.json",
+            template_name="desktop.html",
             out_html=(utils.OUT_DIR / "report.html")
         )
         build_html_report(
-            agg_dir=utils.AGG_DIR, 
-            template_name="mobile.html", 
+            all_agg_path=utils.AGG_DIR / "all_aggregates.json",
+            social_graph_path=utils.AGG_DIR / "social_graph.json",
+            template_name="mobile.html",
             out_html=(utils.OUT_DIR / "report.mobile.html")
-        )
-
-        logger.info("--- ШАГ 4: Генерация Excel-отчета ---")
-        generate_excel_report(
-            normalized_json_path=norm_path,
-            output_excel_path=(utils.OUT_DIR / "report.xlsx"),
-            hash_len=10,
-            logger=logger
         )
 
         logger.info("--- ПРОЦЕСС ЗАВЕРШЁН ---")
