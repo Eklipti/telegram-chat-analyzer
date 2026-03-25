@@ -123,7 +123,10 @@ def find_normalized_json(explicit: Path | None) -> Path:
 
 def load_json(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+        if not isinstance(data, dict):
+            raise ValueError(f"Ожидался словарь, но получено: {type(data)}")
+        return data
 
 
 def save_json(path: Path, data: dict[str, Any]) -> None:

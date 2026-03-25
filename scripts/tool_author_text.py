@@ -4,6 +4,7 @@ import logging
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from . import utils
 
@@ -19,9 +20,9 @@ def generate_author_text_report(input_path: Path, output_path: Path) -> None:
     msgs = data.get("messages", [])
     chat_id = data.get("id", "unknown_chat_id")
 
-    author_counts = defaultdict(int)
-    author_names = {}
-    messages_by_user = defaultdict(dict)
+    author_counts: defaultdict[str, int] = defaultdict(int)
+    author_names: dict[str, str] = {}
+    messages_by_user: defaultdict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
 
     logger.info(f"Обработка {len(msgs)} сообщений для отчета...")
 

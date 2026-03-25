@@ -5,6 +5,7 @@ import re
 from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
+from typing import cast
 from urllib.parse import urlparse
 
 from . import utils
@@ -621,7 +622,7 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
             }
         )
 
-    reaction_speed_top.sort(key=lambda x: x["median_seconds"])
+    reaction_speed_top.sort(key=lambda x: cast(float, x["median_seconds"]))
     reaction_speed_top = reaction_speed_top[:10]
 
     owls_vs_larks = []
@@ -654,7 +655,7 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
             }
         )
 
-    owls_vs_larks.sort(key=lambda x: x["night_percentage"], reverse=True)
+    owls_vs_larks.sort(key=lambda x: cast(float, x["night_percentage"]), reverse=True)
 
     self_censorship_top = []
     for user_id, edit_count in edit_count_by_user.items():
@@ -673,7 +674,7 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
             }
         )
 
-    self_censorship_top.sort(key=lambda x: x["edit_percentage"], reverse=True)
+    self_censorship_top.sort(key=lambda x: cast(float, x["edit_percentage"]), reverse=True)
     self_censorship_top = self_censorship_top[:10]
 
     total_mentions = sum(mention_counter.values())

@@ -1,6 +1,8 @@
 .venv/
 **/__pycache__/
 .idea/
+.ruff_cache
+.mypy_cache
 output/
 **/raw_json/
 **/processed_json/

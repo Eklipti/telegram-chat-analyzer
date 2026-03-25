@@ -158,7 +158,7 @@ def format_date_for_output(date_norm: str | None) -> str:
 
 def generate_context_report(
     input_path: Path,
-    output_path: Path,
+    output_path: Path | None,
     date_arg: str,
     compress: bool = False,
     no_save_uncompressed: bool = False,

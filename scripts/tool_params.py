@@ -66,10 +66,12 @@ def generate_params_md(input_path: Path, output_md: Path) -> None:
     meta_shift = utils.parse_filename_shift(input_path)
     data = utils.load_json(input_path)
 
-    key_counter, path_counter = Counter(), Counter()
-    type_counter: dict[str, Counter] = defaultdict(Counter)
-    array_items_total, array_containers_count = Counter(), Counter()
-    root_snapshot = {}
+    key_counter: Counter[str] = Counter()
+    path_counter: Counter[str] = Counter()
+    type_counter: dict[str, Counter[str]] = defaultdict(Counter)
+    array_items_total: Counter[str] = Counter()
+    array_containers_count: Counter[str] = Counter()
+    root_snapshot: dict[str, str] = {}
 
     if isinstance(data, dict):
         for k, v in data.items():
@@ -77,7 +79,7 @@ def generate_params_md(input_path: Path, output_md: Path) -> None:
     _walk(data, key_counter, path_counter, type_counter, array_items_total, array_containers_count, "$")
 
     # сводка
-    total_msgs = int(path_counter.get("$.messages[]", 0))  # Количество элементов массива messages
+    total_msgs = int(path_counter.get("$.messages[]", 0))
     replies = int(path_counter.get("$.messages[].reply_to_message_id", 0))
     edited = int(path_counter.get("$.messages[].edited", 0))
     reactions_msgs = int(path_counter.get("$.messages[].reactions", 0))
@@ -91,7 +93,7 @@ def generate_params_md(input_path: Path, output_md: Path) -> None:
         ("Имя файла", input_path.name),
         ("Размер, МБ", f"{input_path.stat().st_size / (1024 * 1024):.2f}"),
         ("Сгенерировано (UTC)", datetime.utcnow().isoformat(timespec="seconds") + "Z"),
-        ("Shift к МСК (из имени)", meta_shift if meta_shift is not None else "—"),
+        ("Shift к МСК (из имени)", str(meta_shift) if meta_shift is not None else "—"),
     ]
     lines.append(_table(meta_rows, ("Поле", "Значение")))
 
@@ -99,12 +101,12 @@ def generate_params_md(input_path: Path, output_md: Path) -> None:
     lines.append(
         _table(
             [
-                ("Всего сообщений", total_msgs),
+                ("Всего сообщений", str(total_msgs)),
                 ("Ответы", f"{replies} ({_pct(replies, total_msgs)})"),
                 ("Отредактированы", f"{edited} ({_pct(edited, total_msgs)})"),
                 ("С реакциями", f"{reactions_msgs} ({_pct(reactions_msgs, total_msgs)})"),
-                ("С фото", with_photo),
-                ("С файлами", with_file),
+                ("С фото", str(with_photo)),
+                ("С файлами", str(with_file)),
             ],
             ("Метрика", "Значение"),
         )
@@ -114,13 +116,13 @@ def generate_params_md(input_path: Path, output_md: Path) -> None:
     lines.append(_table(sorted(root_snapshot.items()), ("Ключ", "Тип")))
 
     lines.append(_md_header("Частота имён ключей", 2))
-    lines.append(_table([(k, c) for k, c in key_counter.most_common()], ("Ключ", "Количество")))
+    lines.append(_table([(k, str(c)) for k, c in key_counter.most_common()], ("Ключ", "Количество")))
 
     lines.append(_md_header("Частота полных путей", 2))
     path_rows = []
     for p, c in path_counter.most_common():
         types_str = ", ".join(f"{t}:{n}" for t, n in type_counter.get(p, Counter()).most_common())
-        path_rows.append((p, c, types_str))
+        path_rows.append((p, str(c), types_str))
     lines.append(_table(path_rows, ("Путь", "Количество", "Типы (count)")))
 
     lines.append(_md_header("Пути массивов (occurrences / total items / avg)", 2))
@@ -135,7 +137,7 @@ def generate_params_md(input_path: Path, output_md: Path) -> None:
         # Среднее количество элементов в массиве
         avg = f"{(total / num_arrays):.2f}" if num_arrays > 0 else "—"
         types_str = ", ".join(f"{t}:{n}" for t, n in type_counter.get(p, Counter()).most_common())
-        arr.append((p, num_arrays, occ, total, avg, types_str))
+        arr.append((p, str(num_arrays), str(occ), str(total), avg, types_str))
     lines.append(_table(arr, ("Путь", "Списков", "Элементов", "Сумма длин", "Среднее", "Типы/счётчики")))
 
     lines.append(_md_header("Примечания", 2))

@@ -103,7 +103,7 @@ def process_chat_log(input_file, output_file, min_message_length=5, max_message_
 
     processed_messages = []
     current_user = None
-    current_messages = []
+    current_messages: list[str] = []
 
     for line in lines:
         line = line.strip()

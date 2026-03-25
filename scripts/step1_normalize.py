@@ -72,7 +72,7 @@ def normalize_json(
     changed = 0
 
     for m in msgs:
-        normalized_data = {}
+        normalized_data: dict[str, str | None] = {}
 
         dt_naive = None
         # Используем date в приоритете, так как время в raw JSON неопределенное

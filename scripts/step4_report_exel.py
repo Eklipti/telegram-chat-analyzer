@@ -48,7 +48,7 @@ def normalize_messages(
     else:
         raise ValueError("Неподдержимый формат JSON: корень не содержит массива 'messages'")
 
-    anomalies = defaultdict(int)
+    anomalies: defaultdict[str, int] = defaultdict(int)
 
     for msg in src_iter:
         if msg.get("type") != VALID_MESSAGE_TYPE:
@@ -175,7 +175,8 @@ def compute_metrics(df: pd.DataFrame) -> dict[str, Any]:
     pivot_wide = pivot_wide.sort_values("Всего", ascending=False).reset_index(drop=True)
 
     # Медиа (итоги за период)
-    media_counts = Counter()
+    media_counts: Counter[str] = Counter()
+
     for v in df["MediaCat"].dropna():
         media_counts[str(v)] += 1
     media_rows = []
