@@ -1,20 +1,3 @@
-# Telegram Chat Analyzer
-# Copyright (C) 2025 Eklipti
-#
-# Этот проект — свободное программное обеспечение: вы можете
-# распространять и/или изменять его на условиях
-# Стандартной общественной лицензии GNU (GNU GPL)
-# третьей версии, опубликованной Фондом свободного ПО.
-#
-# Программа распространяется в надежде, что она будет полезной,
-# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
-# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
-# Подробности см. в Стандартной общественной лицензии GNU.
-#
-# Вы должны были получить копию Стандартной общественной
-# лицензии GNU вместе с этой программой. Если это не так,
-# см. <https://www.gnu.org/licenses/>.
-
 from __future__ import annotations
 import logging
 from pathlib import Path
@@ -24,37 +7,44 @@ from . import utils
 
 logger = logging.getLogger(__name__)
 
+
 def _load_json_if_exists(p: Path) -> Optional[dict]:
     try:
         return utils.load_json(p)
     except Exception:
         return None
 
+
 def build_html_report(
-    agg_dir: Path, 
-    template_name: str, # "desktop.html" или "mobile.html"
-    out_html: Path
+        all_agg_path: Path,
+        social_graph_path: Path,
+        template_name: str,
+        out_html: Path
 ) -> None:
-    
-    all_agg_path = agg_dir / "all_aggregates.json"
+    logger.info("Генерация HTML-отчета")
+
     all_agg = _load_json_if_exists(all_agg_path)
     if not all_agg:
         logger.error("Не найден главный файл агрегатов: %s", all_agg_path)
         all_agg = {}
+    else:
+        logger.debug("Загружен файл агрегатов: %s", all_agg_path.name)
 
-    social_graph_path = agg_dir / "social_graph.json"
     social_graph = _load_json_if_exists(social_graph_path)
     if not social_graph:
         logger.warning("Файл социального графа не найден: %s", social_graph_path)
         social_graph = {}
+    else:
+        logger.debug("Загружен файл социального графа: %s", social_graph_path.name)
 
     data_blobs = {
         **all_agg,
         "social_graph": social_graph,
     }
 
+    template_path = Path(__file__).parent.parent / "templates" / template_name
+
     try:
-        template_path = Path(__file__).parent.parent / "templates" / template_name
         html_template = template_path.read_text(encoding="utf-8")
     except FileNotFoundError:
         logger.error("Файл шаблона не найден: %s", template_path)
