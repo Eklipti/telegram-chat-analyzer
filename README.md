@@ -10,21 +10,19 @@
 
 ## 🛠️ Установка
 
-0. Установите [Python](https://www.python.org/downloads) 3.8 или выше.
-
-1.  Клонируйте репозиторий:
+1. Установите [Python](https://www.python.org/downloads) 3.8 или выше. 
+2. Клонируйте репозиторий:
     ```powershell
     git clone https://github.com/Eklipti/telegram-chat-analyzer
     cd telegram-chat-analyzer
     ```
-
-2.  Создайте и активируйте виртуальное окружение:
+3. Создайте и активируйте виртуальное окружение:
     ```powershell
     python -m venv .venv
     .\.venv\Scripts\Activate.ps1
     ```
 
-3.  Установите зависимости:
+4. Установите зависимости:
     ```powershell
     pip install -r requirements.txt
     ```
