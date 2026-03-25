@@ -1,20 +1,3 @@
-# Telegram Chat Analyzer
-# Copyright (C) 2025 Eklipti
-#
-# Этот проект — свободное программное обеспечение: вы можете
-# распространять и/или изменять его на условиях
-# Стандартной общественной лицензии GNU (GNU GPL)
-# третьей версии, опубликованной Фондом свободного ПО.
-#
-# Программа распространяется в надежде, что она будет полезной,
-# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
-# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
-# Подробности см. в Стандартной общественной лицензии GNU.
-#
-# Вы должны были получить копию Стандартной общественной
-# лицензии GNU вместе с этой программой. Если это не так,
-# см. <https://www.gnu.org/licenses/>.
-
 from __future__ import annotations
 import logging
 import time
@@ -30,7 +13,7 @@ logger = logging.getLogger(__name__)
 def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
     t_start = datetime.now()
     t0 = time.perf_counter()
-    logger.info("Начало в %s", t_start.strftime("%Y-%m-%d %H:%M:%S"))
+    logger.debug("Начало в %s", t_start.strftime("%Y-%m-%d %H:%M:%S"))
 
     data = utils.load_json(input_0)
     msgs = data.get("messages") or []
@@ -269,5 +252,9 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
 
     t_end = datetime.now()
     elapsed = time.perf_counter() - t0
-    logger.info("Конец в %s", t_end.strftime("%Y-%m-%d %H:%M:%S"))
-    logger.info("Прошло %.2f с", elapsed)
+    logger.debug("Конец в %s", t_end.strftime("%Y-%m-%d %H:%M:%S"))
+    logger.info("Агрегация заняла: %.2f с", elapsed)
+
+    save_path = out_dir / "all_aggregates.json"
+    utils.save_json(save_path, final_aggregates)
+    logger.info("Файл \"%s\" успешно сохранен по пути: %s", save_path.name, save_path)
