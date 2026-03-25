@@ -40,17 +40,13 @@ def main():
     p5 = sub.add_parser("mobile", help="Мобильный HTML-отчёт -> /output/report.mobile.html")
     p5.add_argument("--input", type=Path, help="Входной JSON для определения хэш-папки")
     p5.add_argument("--agg-dir", type=Path, help="Каталог агрегатов (по умолч. /output/agg)")
-    p5.add_argument(
-        "--out",
-        type=Path,
-        help="Путь к report.mobile.html (по умолч. /output/report.mobile.html)")
+    p5.add_argument("--out", type=Path, help="Путь к report.mobile.html (по умолч. /output/report.mobile.html)")
 
     p6 = sub.add_parser("all", help="Полный конвейер: normalize -> agg -> social -> html -> mobile -> excel")
     p6.add_argument("--input", type=Path)
     p6.add_argument(
-        "--force",
-        action="store_true",
-        help="Перезаписать существующий нормализованный файл на шаге normalize")
+        "--force", action="store_true", help="Перезаписать существующий нормализованный файл на шаге normalize"
+    )
 
     p7 = sub.add_parser("social", help="Социальный граф и взаимодействия -> /output/agg/social_graph.json")
     p7.add_argument("--input", type=Path, help="Входной JSON (нормализованный)")
@@ -60,50 +56,39 @@ def main():
     p8.add_argument("--input", type=Path, help="Входной JSON (нормализованный или сырой)")
     p8.add_argument("--out", type=Path, help="Путь для сохранения результата")
 
-    p9 = sub.add_parser(
-        "context",
-        help="Текстовая история сообщений за период -> /output/context/context_*.txt")
+    p9 = sub.add_parser("context", help="Текстовая история сообщений за период -> /output/context/context_*.txt")
     p9.add_argument(
         "--date",
         type=str,
         required=True,
-        help="Дата или период: -1 (вчера), YYYY-MM-DD (день), YYYY-MM-DD_YYYY-MM-DD (период)")
-    p9.add_argument(
-        "-i", "--input", type=Path, help="Путь к нормализованному JSON (опционально)")
-    p9.add_argument(
-        "--compress",
-        action="store_true",
-        help="Создать сжатую версию контекста")
-    p9.add_argument(
-        "--no-save",
-        action="store_true",
-        help="Не сохранять несжатую версию (работает только с --compress)")
+        help="Дата или период: -1 (вчера), YYYY-MM-DD (день), YYYY-MM-DD_YYYY-MM-DD (период)",
+    )
+    p9.add_argument("-i", "--input", type=Path, help="Путь к нормализованному JSON (опционально)")
+    p9.add_argument("--compress", action="store_true", help="Создать сжатую версию контекста")
+    p9.add_argument("--no-save", action="store_true", help="Не сохранять несжатую версию (работает только с --compress)")
     p9.add_argument(
         "-s",
         "--split",
         action="store_true",
-        help="Разбить период на отдельные файлы для каждого дня (работает только с периодом)")
+        help="Разбить период на отдельные файлы для каждого дня (работает только с периодом)",
+    )
     p9.add_argument(
         "-t",
         "--threads",
         type=int,
         default=2,
-        help="Количество потоков для режима --split (по умолчанию 2, максимум 100)")
+        help="Количество потоков для режима --split (по умолчанию 2, максимум 100)",
+    )
     p9.add_argument(
         "--batch-size",
         type=int,
         default=10000,
-        help="Размер батча сообщений для обработки в режиме --split (по умолчанию 10000 строк)")
+        help="Размер батча сообщений для обработки в режиме --split (по умолчанию 10000 строк)",
+    )
+    p9.add_argument("--min", type=int, default=5, help="Минимальная длина сообщения для сжатой версии (по умолчанию 5)")
     p9.add_argument(
-        "--min",
-        type=int,
-        default=5,
-        help="Минимальная длина сообщения для сжатой версии (по умолчанию 5)")
-    p9.add_argument(
-        "--max",
-        type=int,
-        default=250,
-        help="Максимальная длина сообщения для сжатой версии (по умолчанию 250)")
+        "--max", type=int, default=250, help="Максимальная длина сообщения для сжатой версии (по умолчанию 250)"
+    )
 
     p10 = sub.add_parser("excel", help="Excel-отчёт -> /output/report.xlsx")
     p10.add_argument("--input", type=Path, help="Входной JSON (нормализованный или сырой)")
@@ -113,6 +98,7 @@ def main():
 
     if args.cmd == "params":
         from scripts.tool_params import generate_params_md
+
         src = utils.find_input_json(args.input)
         utils.init_hashed_output_dir(src)
         out = args.output or (utils.OUT_DIR / "md" / "json_params.md")
@@ -158,7 +144,7 @@ def main():
             max_workers=args.threads,
             batch_size=args.batch_size,
             min_length=args.min,
-            max_length=args.max
+            max_length=args.max,
         )
 
     elif args.cmd == "excel":
@@ -174,12 +160,7 @@ def main():
         utils.init_hashed_output_dir(src)
         out_file = args.out or (utils.OUT_DIR / "report.xlsx")
 
-        generate_excel_report(
-            normalized_json_path=src,
-            output_excel_path=out_file,
-            hash_len=10,
-            logger=logger
-        )
+        generate_excel_report(normalized_json_path=src, output_excel_path=out_file, hash_len=10, logger=logger)
 
     elif args.cmd == "normalize":
         src = utils.find_input_json(args.input)
@@ -218,7 +199,7 @@ def main():
             all_agg_path=agg_dir / "all_aggregates.json",
             social_graph_path=agg_dir / "social_graph.json",
             template_name="desktop.html",
-            out_html=out
+            out_html=out,
         )
 
     elif args.cmd == "mobile":
@@ -234,7 +215,7 @@ def main():
             all_agg_path=agg_dir / "all_aggregates.json",
             social_graph_path=agg_dir / "social_graph.json",
             template_name="mobile.html",
-            out_html=out
+            out_html=out,
         )
 
     elif args.cmd == "all":
@@ -244,10 +225,7 @@ def main():
         logger.info("--- ШАГ 1: Нормализация данных ---")
         try:
             norm_path = normalize_json(
-                src_raw,
-                None,
-                "user" if args.input else "auto",
-                force=getattr(args, "force", False)
+                src_raw, None, "user" if args.input else "auto", force=getattr(args, "force", False)
             )
         except Exception as e:
             logger.error("--- ОШИБКА: Шаг 1 не удался ---")
@@ -265,16 +243,17 @@ def main():
             all_agg_path=utils.AGG_DIR / "all_aggregates.json",
             social_graph_path=utils.AGG_DIR / "social_graph.json",
             template_name="desktop.html",
-            out_html=(utils.OUT_DIR / "report.html")
+            out_html=(utils.OUT_DIR / "report.html"),
         )
         build_html_report(
             all_agg_path=utils.AGG_DIR / "all_aggregates.json",
             social_graph_path=utils.AGG_DIR / "social_graph.json",
             template_name="mobile.html",
-            out_html=(utils.OUT_DIR / "report.mobile.html")
+            out_html=(utils.OUT_DIR / "report.mobile.html"),
         )
 
         logger.info("--- ПРОЦЕСС ЗАВЕРШЁН ---")
+
 
 if __name__ == "__main__":
     main()
