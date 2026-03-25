@@ -16,12 +16,7 @@ def _load_json_if_exists(p: Path) -> dict | None:
         return None
 
 
-def build_html_report(
-        all_agg_path: Path,
-        social_graph_path: Path,
-        template_name: str,
-        out_html: Path
-) -> None:
+def build_html_report(all_agg_path: Path, social_graph_path: Path, template_name: str, out_html: Path) -> None:
     logger.info("Генерация HTML-отчета")
 
     all_agg = _load_json_if_exists(all_agg_path)

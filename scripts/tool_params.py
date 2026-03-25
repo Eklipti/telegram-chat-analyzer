@@ -10,16 +10,26 @@ from . import utils
 
 
 def _value_type_name(v: Any) -> str:
-    if v is None: return "null"
-    if isinstance(v, bool): return "bool"
-    if isinstance(v, int): return "int"
-    if isinstance(v, float): return "float"
-    if isinstance(v, str): return "str"
-    if isinstance(v, list): return "list"
-    if isinstance(v, dict): return "dict"
+    if v is None:
+        return "null"
+    if isinstance(v, bool):
+        return "bool"
+    if isinstance(v, int):
+        return "int"
+    if isinstance(v, float):
+        return "float"
+    if isinstance(v, str):
+        return "str"
+    if isinstance(v, list):
+        return "list"
+    if isinstance(v, dict):
+        return "dict"
     return type(v).__name__
 
-def _walk(obj: Any, key_counter, path_counter, type_counter, array_items_total, array_containers_count, path: str = "$") -> None:
+
+def _walk(
+    obj: Any, key_counter, path_counter, type_counter, array_items_total, array_containers_count, path: str = "$"
+) -> None:
     if isinstance(obj, dict):
         for k, v in obj.items():
             key_counter[k] += 1
@@ -31,23 +41,26 @@ def _walk(obj: Any, key_counter, path_counter, type_counter, array_items_total, 
         list_item_path = f"{path}[]"
         array_containers_count[list_item_path] += 1
         array_items_total[list_item_path] += len(obj)
-        for item in obj:
+        for i in obj:
             path_counter[list_item_path] += 1
-            type_counter[list_item_path][_value_type_name(item)] += 1
-            _walk(item, key_counter, path_counter, type_counter, array_items_total, array_containers_count, list_item_path)
+            type_counter[list_item_path][_value_type_name(i)] += 1
+            _walk(i, key_counter, path_counter, type_counter, array_items_total, array_containers_count, list_item_path)
+
 
 def _md_header(t: str, lvl: int = 1) -> str:
-    return f"{'#'*lvl} {t}\n\n"
+    return f"{'#' * lvl} {t}\n\n"
+
 
 def _table(rows: Iterable[tuple[str, ...]], headers: tuple[str, ...]) -> str:
-    out = ["| " + " | ".join(headers) + " |",
-           "| " + " | ".join("---" for _ in headers) + " |"]
+    out = ["| " + " | ".join(headers) + " |", "| " + " | ".join("---" for _ in headers) + " |"]
     for r in rows:
         out.append("| " + " | ".join(str(x) for x in r) + " |")
     return "\n".join(out) + "\n\n"
 
+
 def _pct(part: int, total: int) -> str:
-    return "0.00%" if not total else f"{(part/total)*100:.2f}%"
+    return "0.00%" if not total else f"{(part / total) * 100:.2f}%"
+
 
 def generate_params_md(input_path: Path, output_md: Path) -> None:
     meta_shift = utils.parse_filename_shift(input_path)
@@ -76,37 +89,42 @@ def generate_params_md(input_path: Path, output_md: Path) -> None:
     lines.append(_md_header("Метаданные файла", 2))
     meta_rows = [
         ("Имя файла", input_path.name),
-        ("Размер, МБ", f"{input_path.stat().st_size / (1024*1024):.2f}"),
-        ("Сгенерировано (UTC)", datetime.utcnow().isoformat(timespec="seconds")+"Z"),
+        ("Размер, МБ", f"{input_path.stat().st_size / (1024 * 1024):.2f}"),
+        ("Сгенерировано (UTC)", datetime.utcnow().isoformat(timespec="seconds") + "Z"),
         ("Shift к МСК (из имени)", meta_shift if meta_shift is not None else "—"),
     ]
-    lines.append(_table(meta_rows, ("Поле","Значение")))
+    lines.append(_table(meta_rows, ("Поле", "Значение")))
 
     lines.append(_md_header("Сводка по сообщениям", 2))
-    lines.append(_table([
-        ("Всего сообщений", total_msgs),
-        ("Ответы", f"{replies} ({_pct(replies,total_msgs)})"),
-        ("Отредактированы", f"{edited} ({_pct(edited,total_msgs)})"),
-        ("С реакциями", f"{reactions_msgs} ({_pct(reactions_msgs,total_msgs)})"),
-        ("С фото", with_photo),
-        ("С файлами", with_file),
-    ], ("Метрика","Значение")))
+    lines.append(
+        _table(
+            [
+                ("Всего сообщений", total_msgs),
+                ("Ответы", f"{replies} ({_pct(replies, total_msgs)})"),
+                ("Отредактированы", f"{edited} ({_pct(edited, total_msgs)})"),
+                ("С реакциями", f"{reactions_msgs} ({_pct(reactions_msgs, total_msgs)})"),
+                ("С фото", with_photo),
+                ("С файлами", with_file),
+            ],
+            ("Метрика", "Значение"),
+        )
+    )
 
     lines.append(_md_header("Ключи верхнего уровня (типы)", 2))
-    lines.append(_table(sorted(root_snapshot.items()), ("Ключ","Тип")))
+    lines.append(_table(sorted(root_snapshot.items()), ("Ключ", "Тип")))
 
     lines.append(_md_header("Частота имён ключей", 2))
-    lines.append(_table([(k,c) for k,c in key_counter.most_common()], ("Ключ","Количество")))
+    lines.append(_table([(k, c) for k, c in key_counter.most_common()], ("Ключ", "Количество")))
 
     lines.append(_md_header("Частота полных путей", 2))
-    path_rows=[]
-    for p,c in path_counter.most_common():
-        types_str = ", ".join(f"{t}:{n}" for t,n in type_counter.get(p, Counter()).most_common())
-        path_rows.append((p,c,types_str))
-    lines.append(_table(path_rows, ("Путь","Количество","Типы (count)")))
+    path_rows = []
+    for p, c in path_counter.most_common():
+        types_str = ", ".join(f"{t}:{n}" for t, n in type_counter.get(p, Counter()).most_common())
+        path_rows.append((p, c, types_str))
+    lines.append(_table(path_rows, ("Путь", "Количество", "Типы (count)")))
 
     lines.append(_md_header("Пути массивов (occurrences / total items / avg)", 2))
-    arr=[]
+    arr = []
     for p in sorted([k for k in path_counter if k.endswith("[]")]):
         # Количество элементов массива (сколько раз встретился путь path[])
         occ = int(path_counter.get(p, 0))
@@ -115,14 +133,14 @@ def generate_params_md(input_path: Path, output_md: Path) -> None:
         # Сумма длин всех массивов по этому пути
         total = int(array_items_total.get(p, 0))
         # Среднее количество элементов в массиве
-        avg = f"{(total/num_arrays):.2f}" if num_arrays > 0 else "—"
-        types_str = ", ".join(f"{t}:{n}" for t,n in type_counter.get(p, Counter()).most_common())
+        avg = f"{(total / num_arrays):.2f}" if num_arrays > 0 else "—"
+        types_str = ", ".join(f"{t}:{n}" for t, n in type_counter.get(p, Counter()).most_common())
         arr.append((p, num_arrays, occ, total, avg, types_str))
-    lines.append(_table(arr, ("Путь","Списков","Элементов","Сумма длин","Среднее","Типы/счётчики")))
+    lines.append(_table(arr, ("Путь", "Списков", "Элементов", "Сумма длин", "Среднее", "Типы/счётчики")))
 
     lines.append(_md_header("Примечания", 2))
-    du = ", ".join(f"{t}:{n}" for t,n in type_counter.get("$.messages[].date_unixtime", Counter()).most_common())
-    eu = ", ".join(f"{t}:{n}" for t,n in type_counter.get("$.messages[].edited_unixtime", Counter()).most_common())
+    du = ", ".join(f"{t}:{n}" for t, n in type_counter.get("$.messages[].date_unixtime", Counter()).most_common())
+    eu = ", ".join(f"{t}:{n}" for t, n in type_counter.get("$.messages[].edited_unixtime", Counter()).most_common())
     lines.append(
         "- Количество = число вхождений поля.\n"
         "- Пути `[]` показывают списки: сколько встретилось контейнеров и суммарно элементов.\n"

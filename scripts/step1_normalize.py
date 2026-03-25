@@ -8,6 +8,7 @@ from .utils import MEDIA_MAP, apply_shift_and_format
 
 logger = logging.getLogger(__name__)
 
+
 def _format_size(size_bytes: int) -> str:
     if size_bytes < 1024:
         return f"{size_bytes} B"
@@ -30,7 +31,7 @@ def normalize_json(
     - Складывает все новые поля в m["meta_norm"] = {...}
 
     input_path_origin: "user" — путь указан пользователем, "auto" — выбран автоматически (самый новый в raw_json).
-    force: если True, перезаписывает существующий нормализованный файл; иначе при существовании dst — пропуск, возврат пути.
+    force: если True, перезаписывает существующий нормализованный файл; иначе — пропуск, возврат пути.
     """
     size_bytes = input_path.stat().st_size
     logger.info(
@@ -47,7 +48,7 @@ def normalize_json(
     if shift is None:
         logger.warning(f"Имя файла '{input_path.name}' не содержит часовой сдвиг в формате [number].")
         logger.warning("Принят сдвиг по умолчанию: 0 (UTC).")
-        shift = 0    
+        shift = 0
 
     out_dir = output_dir or utils.PROCESSED_JSON_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -79,15 +80,14 @@ def normalize_json(
             dt_naive = utils.parse_iso_dt_naive(m.get("date"))
         if dt_naive is None and isinstance(m.get("date_unixtime"), str):
             dt_naive = utils.dt_from_unixtime_str(m.get("date_unixtime"))
-        
+
         date_norm = apply_shift_and_format(dt_naive, shift) if dt_naive else None
-        
+
         if date_norm:
             normalized_data["date_norm"] = date_norm
             changed += 1
         else:
             normalized_data["date_norm"] = None
-
 
         edt_naive = None
         if "edited" in m or "edited_unixtime" in m:
@@ -102,7 +102,7 @@ def normalize_json(
 
         media_cat = None
         media_type = m.get("media_type")
-        
+
         if media_type not in (None, ""):
             media_cat = MEDIA_MAP.get(str(media_type), "other")
         else:
@@ -112,20 +112,22 @@ def normalize_json(
                 media_cat = "sticker"
             elif "photo" in m:
                 media_cat = "photo"
-        
+
         normalized_data["media_cat"] = media_cat
 
         m["meta_norm"] = normalized_data
     if "meta" not in data or not isinstance(data.get("meta"), list):
         data["meta"] = []
-    
-    data["meta"].append({
-        "by_normalize": {
-            "applied_shift_hours": shift,
-            "note": f"Созданы поля 'meta_norm' с примененным сдвигом {shift:+d}",
-            "messages_with_date_norm": changed
+
+    data["meta"].append(
+        {
+            "by_normalize": {
+                "applied_shift_hours": shift,
+                "note": f"Созданы поля 'meta_norm' с примененным сдвигом {shift:+d}",
+                "messages_with_date_norm": changed,
+            }
         }
-    })
+    )
 
     utils.save_json(dst, data)
     return dst

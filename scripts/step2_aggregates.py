@@ -22,10 +22,10 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
     chat_id = data.get("id", "unknown_chat_id")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    by_day: dict[str,int] = Counter()
-    by_hour: dict[int,int] = Counter()
-    by_author: dict[str,int] = Counter()
-    name_by_id: dict[str,str] = {}
+    by_day: dict[str, int] = Counter()
+    by_hour: dict[int, int] = Counter()
+    by_author: dict[str, int] = Counter()
+    name_by_id: dict[str, str] = {}
     message_ids: set[int] = set()
     reply_ids: set[int] = set()
     edited_ids: set[int] = set()
@@ -40,16 +40,16 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
     thread_size: dict[int, int] = Counter()
     thread_participants: dict[int, set] = defaultdict(set)
     emoji_counter: Counter = Counter()
-    top_reacted_msgs: list[tuple[int,int]] = []
-    reactions_by_author: dict[str,int] = Counter()
-    media_counter: dict[str,int] = Counter()
-    polls_by_author: dict[str,int] = Counter()
+    top_reacted_msgs: list[tuple[int, int]] = []
+    reactions_by_author: dict[str, int] = Counter()
+    media_counter: dict[str, int] = Counter()
+    polls_by_author: dict[str, int] = Counter()
 
     for m in msgs:
         msg_type = m.get("type")
         if msg_type != "message":
             continue
-        
+
         meta = m.get("meta_norm", {})
         mid = m.get("id")
         if isinstance(mid, int):
@@ -107,10 +107,13 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
         total_r_for_msg = 0
         if isinstance(reactions, list):
             for r in reactions:
-                if not isinstance(r, dict): continue
+                if not isinstance(r, dict):
+                    continue
                 cnt = r.get("count", 0)
-                try: cnt = int(cnt)
-                except Exception: cnt = 0
+                try:
+                    cnt = int(cnt)
+                except Exception:
+                    cnt = 0
                 key = r.get("emoji") or r.get("type") or "?"
                 emoji_counter[key] += cnt
                 total_r_for_msg += cnt
@@ -124,11 +127,19 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
         seen = []
         while True:
             p = id_to_parent.get(x)
-            if p is None or p not in id_to_parent: r = x; break
-            if x in root_cache: r = root_cache[x]; break
-            seen.append(x); x = p
-            if len(seen) > 1000: r = x; break
-        for y in seen: root_cache[y] = r
+            if p is None or p not in id_to_parent:
+                r = x
+                break
+            if x in root_cache:
+                r = root_cache[x]
+                break
+            seen.append(x)
+            x = p
+            if len(seen) > 1000:
+                r = x
+                break
+        for y in seen:
+            root_cache[y] = r
         return r
 
     for m in msgs:
@@ -136,29 +147,33 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
             continue
         mid = m.get("id")
         fid = m.get("from_id")
-        if not isinstance(mid, int): continue
+        if not isinstance(mid, int):
+            continue
         root = find_root(mid)
         thread_size[root] += 1
         if fid:
             thread_participants[root].add(str(fid))
-    
+
     top_authors_list = [
         {"from_id": fid, "username": name_by_id.get(fid, fid), "count": cnt}
         for fid, cnt in sorted(by_author.items(), key=lambda x: x[1], reverse=True)[:10]
     ]
-    
+
     threads_top5_list = []
     threads_top = sorted(thread_size.items(), key=lambda x: x[1], reverse=True)[:5]
     for root_id, size in threads_top:
         rm = id_to_msg.get(root_id, {})
         rm_meta = rm.get("meta_norm", {})
-        threads_top5_list.append({
-            "root_id": root_id, "size": int(size),
-            "username": rm.get("from") or (str(rm.get("from_id")) if rm.get("from_id") else ""),
-            "date_norm": rm_meta.get("date_norm") or rm.get("date") or "",
-            "text_preview": (rm_meta.get("text_plain") or "")[:140],
-            "unique_participants": len(thread_participants.get(root_id, set())),
-        })
+        threads_top5_list.append(
+            {
+                "root_id": root_id,
+                "size": int(size),
+                "username": rm.get("from") or (str(rm.get("from_id")) if rm.get("from_id") else ""),
+                "date_norm": rm_meta.get("date_norm") or rm.get("date") or "",
+                "text_preview": (rm_meta.get("text_plain") or "")[:140],
+                "unique_participants": len(thread_participants.get(root_id, set())),
+            }
+        )
 
     emoji_top5_list = [{"emoji": k, "count": int(v)} for k, v in emoji_counter.most_common(5)]
 
@@ -167,12 +182,15 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
     for total_r, mid in top_reacted_msgs[:3]:
         m = id_to_msg.get(mid, {})
         m_meta = m.get("meta_norm", {})
-        top_reacted_msgs_list.append({
-            "id": mid, "reactions_total": int(total_r),
-            "username": m.get("from") or (str(m.get("from_id")) if m.get("from_id") else ""),
-            "date_norm": m_meta.get("date_norm") or m.get("date") or "",
-            "text_preview": (m_meta.get("text_plain") or "")[:140],
-        })
+        top_reacted_msgs_list.append(
+            {
+                "id": mid,
+                "reactions_total": int(total_r),
+                "username": m.get("from") or (str(m.get("from_id")) if m.get("from_id") else ""),
+                "date_norm": m_meta.get("date_norm") or m.get("date") or "",
+                "text_preview": (m_meta.get("text_plain") or "")[:140],
+            }
+        )
 
     reactions_by_author_top5_list = [
         {"from_id": fid, "username": name_by_id.get(fid, fid), "total_reactions": int(cnt)}
@@ -181,21 +199,18 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
 
     def pct(n: int, tot: int) -> float:
         return round((n / tot * 100.0), 2) if tot else 0.0
-    
+
     total = len(message_ids)
     replies_count = len(reply_ids)
     edited_count = len(edited_ids)
     react_msgs_count = len(react_ids)
     media_msgs_count = len(media_ids)
-    
+
     photo_count = len(photo_ids)
     gif_count = len(gif_ids)
     other_media_count = len(other_media_ids)
-    
-    media_shares_dict = {
-        k: {"count": int(v), "pct": pct(int(v), media_msgs_count)}
-        for k, v in media_counter.items()
-    }
+
+    media_shares_dict = {k: {"count": int(v), "pct": pct(int(v), media_msgs_count)} for k, v in media_counter.items()}
 
     poll_creators_top3_list = [
         {"from_id": fid, "username": name_by_id.get(fid, fid), "polls": int(cnt)}
@@ -207,47 +222,27 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
         "source_file_path": str(input_0.resolve()),
         "source_file_name": input_0.name,
         "generation_timestamp": int(datetime.now().timestamp()),
-        
         "summary": {
             "total_messages": total,
-            "replies": {
-                "count": replies_count,
-                "pct": pct(replies_count, total)
-            },
+            "replies": {"count": replies_count, "pct": pct(replies_count, total)},
             "edited_msgs": edited_count,
-            "messages_with_reactions": {
-                "count": react_msgs_count,
-                "pct": pct(react_msgs_count, total)
-            },
-            "media": {
-                "count": media_msgs_count,
-                "pct": pct(media_msgs_count, total)
-            },
+            "messages_with_reactions": {"count": react_msgs_count, "pct": pct(react_msgs_count, total)},
+            "media": {"count": media_msgs_count, "pct": pct(media_msgs_count, total)},
             "media_breakdown": {
-                "photo": {
-                    "count": photo_count,
-                    "pct": pct(photo_count, media_msgs_count)
-                },
-                "gif": {
-                    "count": gif_count,
-                    "pct": pct(gif_count, media_msgs_count)
-                },
-                "other": {
-                    "count": other_media_count,
-                    "pct": pct(other_media_count, media_msgs_count)
-                }
-            }
+                "photo": {"count": photo_count, "pct": pct(photo_count, media_msgs_count)},
+                "gif": {"count": gif_count, "pct": pct(gif_count, media_msgs_count)},
+                "other": {"count": other_media_count, "pct": pct(other_media_count, media_msgs_count)},
+            },
         },
         "by_day": dict(sorted(by_day.items())),
         "by_hour": dict(sorted(by_hour.items())),
-        
         "top_authors": top_authors_list,
         "threads_top5": threads_top5_list,
         "emoji_top5": emoji_top5_list,
         "top_reacted_messages_top3": top_reacted_msgs_list,
         "reactions_by_author_top5": reactions_by_author_top5_list,
         "media_shares": media_shares_dict,
-        "poll_creators_top3": poll_creators_top3_list
+        "poll_creators_top3": poll_creators_top3_list,
     }
 
     utils.save_json(out_dir / "all_aggregates.json", final_aggregates)
@@ -259,4 +254,4 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
 
     save_path = out_dir / "all_aggregates.json"
     utils.save_json(save_path, final_aggregates)
-    logger.info("Файл \"%s\" успешно сохранен по пути: %s", save_path.name, save_path)
+    logger.info('Файл "%s" успешно сохранен по пути: %s', save_path.name, save_path)

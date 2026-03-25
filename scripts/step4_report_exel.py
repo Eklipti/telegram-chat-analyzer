@@ -48,13 +48,12 @@ def normalize_messages(
     else:
         raise ValueError("Неподдержимый формат JSON: корень не содержит массива 'messages'")
 
-    anomalies = defaultdict(int) 
+    anomalies = defaultdict(int)
 
     for msg in src_iter:
         if msg.get("type") != VALID_MESSAGE_TYPE:
             continue
-            
-        
+
         # Данные теперь лежат в 'meta_norm'
         meta = msg.get("meta_norm", {})
 
@@ -66,12 +65,12 @@ def normalize_messages(
         local_dt = datetime.fromisoformat(date_norm)
         local_date = local_dt.date()
         hour = local_dt.hour
-        month = date_norm[:7] # YYYY-MM
+        month = date_norm[:7]  # YYYY-MM
 
         from_id = msg.get("from_id")
         if not from_id:
             if msg.get("type") == "service" and not msg.get("from_id"):
-                pass 
+                pass
             else:
                 anomalies["missing_from_id"] += 1
             continue
@@ -89,13 +88,13 @@ def normalize_messages(
                 "MediaCat": meta.get("media_cat"),
             }
         )
-        
 
     if not messages:
         raise ValueError("После фильтрации не осталось сообщений (возможно, все были сервисными?).")
 
     df = pd.DataFrame(messages)
     return df, dict(anomalies)
+
 
 # ------------------------------ Метрики и агрегирование ------------------------------
 
@@ -130,9 +129,7 @@ def compute_metrics(df: pd.DataFrame) -> dict[str, Any]:
     # Участники: стабильное имя
     # FromID может быть None для сервисных, добавим fillna
     df["FromID"] = df["FromID"].fillna("service_msg")
-    names_by_fromid = (
-        df.groupby("FromID")["Name"].apply(_choose_display_name).rename("Имя").to_dict()
-    )
+    names_by_fromid = df.groupby("FromID")["Name"].apply(_choose_display_name).rename("Имя").to_dict()
 
     df = df.copy()
     df["Имя"] = df["FromID"].map(names_by_fromid)
@@ -220,7 +217,7 @@ def compute_metrics(df: pd.DataFrame) -> dict[str, Any]:
 def write_excel(
     output_path: str,
     input_path: str,
-    tz_note: str, 
+    tz_note: str,
     hash_len: int,
     metrics: dict[str, Any],
     anomalies: dict[str, Any],
@@ -282,8 +279,10 @@ def write_excel(
         ws_act.set_column(1, 1, 14, fmt_thousands)
         if n_days > 0:
             ws_act.conditional_format(
-                act_days_startrow + 1, 1,
-                act_days_startrow + n_days, 1,
+                act_days_startrow + 1,
+                1,
+                act_days_startrow + n_days,
+                1,
                 {"type": "data_bar"},
             )
         # Часы
@@ -298,8 +297,10 @@ def write_excel(
         ws_act.set_column(1, 1, 14, fmt_thousands)
         if n_hours > 0:
             ws_act.conditional_format(
-                act_hours_startrow + 1, 1,
-                act_hours_startrow + n_hours, 1,
+                act_hours_startrow + 1,
+                1,
+                act_hours_startrow + n_hours,
+                1,
                 {"type": "data_bar"},
             )
         ws_act.freeze_panes(act_days_startrow + 1, 0)
@@ -379,23 +380,26 @@ def write_excel(
                 ws_top.add_sparkline(dest_cell, {"range": value_range})
         if n_wide > 0:
             ws_top.conditional_format(
-                wide_startrow + 1, col_idx["Всего"],
-                wide_endrow, col_idx["Всего"],
+                wide_startrow + 1,
+                col_idx["Всего"],
+                wide_endrow,
+                col_idx["Всего"],
                 {"type": "data_bar"},
             )
         ws_top.freeze_panes(1, 0)
         # Autofilter
-        if 'wide_endrow' in locals() and 'monthly_endrow' in locals():
+        if "wide_endrow" in locals() and "monthly_endrow" in locals():
             total_rows = max(wide_endrow, monthly_endrow)
             total_cols = max(n_wide_cols, len(monthly_long_cols))
-        elif 'wide_endrow' in locals():
+        elif "wide_endrow" in locals():
             total_rows = wide_endrow
             total_cols = n_wide_cols
-        elif 'monthly_endrow' in locals():
+        elif "monthly_endrow" in locals():
             total_rows = monthly_endrow
             total_cols = len(monthly_long_cols)
         else:
-            total_rows = 0; total_cols = 0
+            total_rows = 0
+            total_cols = 0
         if total_rows > 0 and total_cols > 0:
             ws_top.autofilter(0, 0, total_rows, total_cols - 1)
 
@@ -408,8 +412,10 @@ def write_excel(
         ws_media.set_column(1, 1, 14, fmt_thousands)
         if len(media_df_sorted) > 0:
             ws_media.conditional_format(
-                1, 1,
-                len(media_df_sorted), 1,
+                1,
+                1,
+                len(media_df_sorted),
+                1,
                 {"type": "data_bar"},
             )
 
@@ -429,8 +435,7 @@ def write_excel(
         ws_sum.write(row, 0, "Параметры", fmt_title)
         row += 1
         gen_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
-        
+
         # Обновляем часовой пояс и период
         params = [
             ("Имя входного файла", os.path.basename(input_path)),
@@ -438,8 +443,7 @@ def write_excel(
             ("Часовой пояс", tz_note),
             (f"Период ({tz_note.split(' ')[0]})", f"{min_date} — {max_date}"),
         ]
-        
-        
+
         for k, v in params:
             ws_sum.write(row, 0, k)
             ws_sum.write(row, 1, v)
@@ -478,12 +482,12 @@ def write_excel(
         # Валидации/аномалии
         ws_sum.write(row, 0, "Валидации / аномалии (при чтении [0].json)", fmt_title)
         row += 1
-        
+
         anomaly_counts = [
             ("Отсутствующая/невалидная дата", anomalies.get("missing_date_norm", 0)),
             ("Пустой/некорректный from_id", anomalies.get("missing_from_id", 0)),
         ]
-        
+
         ws_sum.write(row, 0, "Тип")
         ws_sum.write(row, 1, "Счётчик")
         ws_sum.set_row(row, None, fmt_header)
@@ -493,65 +497,58 @@ def write_excel(
             ws_sum.write_number(row, 1, int(v), fmt_thousands)
             row += 1
         row += 1
-        
+
         ws_sum.set_column(0, 0, 40)
         ws_sum.set_column(1, 1, 40)
 
         # ---------------- Сводная (PivotTable) ----------------
         ws_pivot = workbook.add_worksheet("Сводная")
         writer.sheets["Сводная"] = ws_pivot
-        
+
         ws_pivot.write(0, 0, "Данные для создания сводной таблицы", fmt_title)
         ws_pivot.write(1, 0, "Экспортируем данные в формате, удобном для создания PivotTable в Excel", fmt_hint)
-        
+
         pivot_data_startrow = 3
         pivot_cols = ["Месяц", "FromID", "Имя", "Сообщений"]
-        
+
         for i, col in enumerate(pivot_cols):
             ws_pivot.write(pivot_data_startrow, i, col, fmt_header)
-        
+
         monthly_long[pivot_cols].to_excel(
-            writer, 
-            sheet_name="Сводная", 
-            startrow=pivot_data_startrow + 1, 
-            startcol=0, 
-            index=False
+            writer, sheet_name="Сводная", startrow=pivot_data_startrow + 1, startcol=0, index=False
         )
-        
+
         n_pivot_rows = len(monthly_long)
         ws_pivot.set_column(0, 0, 12, fmt_date)
         ws_pivot.set_column(1, 1, 12)
         ws_pivot.set_column(2, 2, 24)
         ws_pivot.set_column(3, 3, 14, fmt_thousands)
-        
+
         if n_pivot_rows > 0:
             ws_pivot.autofilter(pivot_data_startrow, 0, pivot_data_startrow + n_pivot_rows, len(pivot_cols) - 1)
-        
+
         instruction_startrow = pivot_data_startrow + n_pivot_rows + 3
         ws_pivot.write(instruction_startrow, 0, "Инструкция по созданию PivotTable:", fmt_bold)
         instruction_startrow += 1
-        
+
         instructions = [
             "1. Выделите все данные (включая заголовки)",
             "2. Вставка → Сводная таблица",
             "3. Настройте поля:",
             "   - Строки: FromID, Имя",
-            "   - Столбцы: Месяц", 
+            "   - Столбцы: Месяц",
             "   - Значения: Сообщений (сумма)",
-            "4. При необходимости настройте сортировку и фильтры"
+            "4. При необходимости настройте сортировку и фильтры",
         ]
-        
+
         for i, instruction in enumerate(instructions):
             ws_pivot.write(instruction_startrow + i, 0, instruction)
-        
+
         ws_pivot.set_column(0, 0, 50)
 
 
 def generate_excel_report(
-    normalized_json_path: Path, 
-    output_excel_path: Path,
-    hash_len: int, 
-    logger: logging.Logger
+    normalized_json_path: Path, output_excel_path: Path, hash_len: int, logger: logging.Logger
 ) -> None:
     """
     Основная функция-обертка для запуска генерации Excel
@@ -563,9 +560,8 @@ def generate_excel_report(
         raise FileNotFoundError(normalized_json_path)
 
     with normalized_json_path.open("rb") as f:
-         raw = orjson.loads(f.read())
+        raw = orjson.loads(f.read())
 
-    
     # Читаем 'shift' и 'note' из meta-блока, который создал step1
     meta_info_list = raw.get("meta", [])
     meta_info = {}
@@ -578,7 +574,6 @@ def generate_excel_report(
 
     shift = meta_info.get("applied_shift_hours", 0)
     tz_note = meta_info.get("note", f"UTC{shift:+d}")
-    
 
     df, anomalies = normalize_messages(raw, logger)
     metrics = compute_metrics(df)
@@ -586,8 +581,8 @@ def generate_excel_report(
     # Передаем 'tz_note' вместо 'tz_shift_hours'
     write_excel(
         output_path=str(output_excel_path),
-        input_path=str(normalized_json_path), 
-        tz_note=tz_note, 
+        input_path=str(normalized_json_path),
+        tz_note=tz_note,
         hash_len=hash_len,
         metrics=metrics,
         anomalies=anomalies,

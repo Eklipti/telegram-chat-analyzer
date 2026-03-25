@@ -40,11 +40,17 @@ def main():
     p5 = sub.add_parser("mobile", help="Мобильный HTML-отчёт -> /output/report.mobile.html")
     p5.add_argument("--input", type=Path, help="Входной JSON для определения хэш-папки")
     p5.add_argument("--agg-dir", type=Path, help="Каталог агрегатов (по умолч. /output/agg)")
-    p5.add_argument("--out", type=Path, help="Путь к report.mobile.html (по умолч. /output/report.mobile.html)")
+    p5.add_argument(
+        "--out",
+        type=Path,
+        help="Путь к report.mobile.html (по умолч. /output/report.mobile.html)")
 
     p6 = sub.add_parser("all", help="Полный конвейер: normalize -> agg -> social -> html -> mobile -> excel")
     p6.add_argument("--input", type=Path)
-    p6.add_argument("--force", action="store_true", help="Перезаписать существующий нормализованный файл на шаге normalize")
+    p6.add_argument(
+        "--force",
+        action="store_true",
+        help="Перезаписать существующий нормализованный файл на шаге normalize")
 
     p7 = sub.add_parser("social", help="Социальный граф и взаимодействия -> /output/agg/social_graph.json")
     p7.add_argument("--input", type=Path, help="Входной JSON (нормализованный)")
@@ -54,16 +60,50 @@ def main():
     p8.add_argument("--input", type=Path, help="Входной JSON (нормализованный или сырой)")
     p8.add_argument("--out", type=Path, help="Путь для сохранения результата")
 
-    p9 = sub.add_parser("context", help="Текстовая история сообщений за период -> /output/context/context_*.txt")
-    p9.add_argument("--date", type=str, required=True, help="Дата или период: -1 (вчера), YYYY-MM-DD (день), YYYY-MM-DD_YYYY-MM-DD (период)")
-    p9.add_argument("-i", "--input", type=Path, help="Путь к нормализованному JSON (опционально)")
-    p9.add_argument("--compress", action="store_true", help="Создать сжатую версию контекста")
-    p9.add_argument("--no-save", action="store_true", help="Не сохранять несжатую версию (работает только с --compress)")
-    p9.add_argument("-s", "--split", action="store_true", help="Разбить период на отдельные файлы для каждого дня (работает только с периодом)")
-    p9.add_argument("-t", "--threads", type=int, default=2, help="Количество потоков для режима --split (по умолчанию 2, максимум 100)")
-    p9.add_argument("--batch-size", type=int, default=10000, help="Размер батча сообщений для обработки в режиме --split (по умолчанию 10000 строк)")
-    p9.add_argument("--min", type=int, default=5, help="Минимальная длина сообщения для сжатой версии (по умолчанию 5)")
-    p9.add_argument("--max", type=int, default=250, help="Максимальная длина сообщения для сжатой версии (по умолчанию 250)")
+    p9 = sub.add_parser(
+        "context",
+        help="Текстовая история сообщений за период -> /output/context/context_*.txt")
+    p9.add_argument(
+        "--date",
+        type=str,
+        required=True,
+        help="Дата или период: -1 (вчера), YYYY-MM-DD (день), YYYY-MM-DD_YYYY-MM-DD (период)")
+    p9.add_argument(
+        "-i", "--input", type=Path, help="Путь к нормализованному JSON (опционально)")
+    p9.add_argument(
+        "--compress",
+        action="store_true",
+        help="Создать сжатую версию контекста")
+    p9.add_argument(
+        "--no-save",
+        action="store_true",
+        help="Не сохранять несжатую версию (работает только с --compress)")
+    p9.add_argument(
+        "-s",
+        "--split",
+        action="store_true",
+        help="Разбить период на отдельные файлы для каждого дня (работает только с периодом)")
+    p9.add_argument(
+        "-t",
+        "--threads",
+        type=int,
+        default=2,
+        help="Количество потоков для режима --split (по умолчанию 2, максимум 100)")
+    p9.add_argument(
+        "--batch-size",
+        type=int,
+        default=10000,
+        help="Размер батча сообщений для обработки в режиме --split (по умолчанию 10000 строк)")
+    p9.add_argument(
+        "--min",
+        type=int,
+        default=5,
+        help="Минимальная длина сообщения для сжатой версии (по умолчанию 5)")
+    p9.add_argument(
+        "--max",
+        type=int,
+        default=250,
+        help="Максимальная длина сообщения для сжатой версии (по умолчанию 250)")
 
     p10 = sub.add_parser("excel", help="Excel-отчёт -> /output/report.xlsx")
     p10.add_argument("--input", type=Path, help="Входной JSON (нормализованный или сырой)")
@@ -109,8 +149,8 @@ def main():
         out_file = None
 
         generate_context_report(
-            src, 
-            out_file, 
+            src,
+            out_file,
             args.date,
             compress=args.compress,
             no_save_uncompressed=args.no_save,
@@ -203,11 +243,16 @@ def main():
 
         logger.info("--- ШАГ 1: Нормализация данных ---")
         try:
-            norm_path = normalize_json(src_raw, None, "user" if args.input else "auto", force=getattr(args, "force", False))
+            norm_path = normalize_json(
+                src_raw,
+                None,
+                "user" if args.input else "auto",
+                force=getattr(args, "force", False)
+            )
         except Exception as e:
             logger.error("--- ОШИБКА: Шаг 1 не удался ---")
             logger.error(e, exc_info=True)
-            return 
+            return
 
         logger.info("--- ШАГ 2: Агрегация ---")
         build_aggregates_json(norm_path, utils.AGG_DIR)
