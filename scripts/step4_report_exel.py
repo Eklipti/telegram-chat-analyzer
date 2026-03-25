@@ -1,18 +1,16 @@
 from __future__ import annotations
 
-import math
+import logging
+import os
+from collections import Counter, defaultdict
+from collections.abc import Iterable
+from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 import orjson
-import os
 import pandas as pd
-import logging
-
-from pathlib import Path
-from collections import Counter, defaultdict
-from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional, Tuple
 from xlsxwriter.utility import xl_rowcol_to_cell
-from . import utils
 
 VALID_MESSAGE_TYPE = "message"
 
@@ -37,16 +35,16 @@ def _choose_display_name(series: pd.Series) -> str:
 
 
 def normalize_messages(
-    raw_data: Dict[str, Any],
+    raw_data: dict[str, Any],
     logger: logging.Logger,
-) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+) -> tuple[pd.DataFrame, dict[str, Any]]:
     """
     Преобразует НОРМАЛИЗОВАННЫЙ JSON (из step1) в DataFrame.
     Данные берутся из 'meta_norm'.
     """
     messages = []
     if isinstance(raw_data, dict) and "messages" in raw_data and isinstance(raw_data["messages"], list):
-        src_iter: Iterable[Dict[str, Any]] = raw_data["messages"]
+        src_iter: Iterable[dict[str, Any]] = raw_data["messages"]
     else:
         raise ValueError("Неподдержимый формат JSON: корень не содержит массива 'messages'")
 
@@ -102,7 +100,7 @@ def normalize_messages(
 # ------------------------------ Метрики и агрегирование ------------------------------
 
 
-def compute_metrics(df: pd.DataFrame) -> Dict[str, Any]:
+def compute_metrics(df: pd.DataFrame) -> dict[str, Any]:
     """
     Возвращает словарь со всеми производными данными (DataFrame-ы и числа), необходимые для отчёта.
     (Эта функция не требует изменений, т.к. работает с DataFrame)
@@ -224,8 +222,8 @@ def write_excel(
     input_path: str,
     tz_note: str, 
     hash_len: int,
-    metrics: Dict[str, Any],
-    anomalies: Dict[str, Any],
+    metrics: dict[str, Any],
+    anomalies: dict[str, Any],
     logger: logging.Logger,
 ) -> None:
     """

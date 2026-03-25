@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import re
-import json
 import hashlib
-
-from datetime import datetime, timezone, timedelta
+import json
+import re
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Optional, List, Dict
+from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -26,7 +25,7 @@ FILENAME_RE = re.compile(
     re.VERBOSE | re.IGNORECASE
 )
 
-MEDIA_MAP: Dict[str, str] = {
+MEDIA_MAP: dict[str, str] = {
     "photo": "photo",
     "video": "video",
     "video_file": "video",
@@ -44,20 +43,20 @@ MEDIA_MAP: Dict[str, str] = {
     "game": "game",
 }
 
-MEDIA_CATEGORIES_ORDER: List[str] = [
+MEDIA_CATEGORIES_ORDER: list[str] = [
     "photo", "video", "audio_file", "voice_message", "video_message",
     "sticker", "animation (GIF)", "document", "poll", "contact",
     "location", "game", "other",
 ]
 
 
-def _norm_time_fragment(t: str) -> Optional[str]:
+def _norm_time_fragment(t: str) -> str | None:
     digits = re.sub(r"\D", "", t)
     if len(digits) != 6:
         return None
     return f"{digits[0:2]}:{digits[2:4]}:{digits[4:6]}"
 
-def parse_filename_shift(p: Path) -> Optional[int]:
+def parse_filename_shift(p: Path) -> int | None:
     m = FILENAME_RE.search(p.name)
     if not m: return None
     try: return int(m.group("shift"))
@@ -71,7 +70,7 @@ def replace_shift_with_zero(p: Path) -> Path:
     return p.with_name(
         f'{m.group("prefix")}[0].json'
     )
-def find_input_json(explicit: Optional[Path]) -> Path:
+def find_input_json(explicit: Path | None) -> Path:
     """Ищет самый новый .json в /telegram/exports/raw_json/"""
     if explicit:
         if not explicit.exists(): raise FileNotFoundError(explicit)
@@ -88,7 +87,7 @@ def find_input_json(explicit: Optional[Path]) -> Path:
     cands.sort(key=lambda p: p.stat().st_mtime, reverse=True)
     return cands[0]
 
-def find_normalized_json(explicit: Optional[Path]) -> Path:
+def find_normalized_json(explicit: Path | None) -> Path:
     """Ищет самый новый .json в /telegram/exports/processed_json/ (нормализованные файлы именуются по хешу: <hash>.json)."""
     if explicit:
         if not explicit.exists(): raise FileNotFoundError(explicit)
@@ -112,14 +111,14 @@ def save_json(path: Path, data: dict[str, Any]) -> None:
     with path.open("w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-def dt_from_unixtime_str(s: str) -> Optional[datetime]:
+def dt_from_unixtime_str(s: str) -> datetime | None:
     if not s: return None
     try: 
-        dt = datetime.fromtimestamp(int(s), tz=timezone.utc)
+        dt = datetime.fromtimestamp(int(s), tz=UTC)
         return dt.replace(tzinfo=None)
     except: return None
 
-def parse_iso_dt_naive(s: str) -> Optional[datetime]:
+def parse_iso_dt_naive(s: str) -> datetime | None:
     if not s: return None
     try:
         dt_str = s.replace("Z", "")
@@ -129,7 +128,7 @@ def parse_iso_dt_naive(s: str) -> Optional[datetime]:
         return dt.replace(tzinfo=None) if dt.tzinfo else dt
     except: return None
 
-def apply_shift_and_format(dt_naive: Optional[datetime], shift_hours: int) -> Optional[str]:
+def apply_shift_and_format(dt_naive: datetime | None, shift_hours: int) -> str | None:
     """
     Применяет часовой сдвиг к naive datetime и форматирует с указанием сдвига.
     Время в raw JSON неопределенное, сдвиг применяется напрямую.

@@ -1,9 +1,13 @@
 from __future__ import annotations
+
 from collections import Counter, defaultdict
+from collections.abc import Iterable
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, Tuple
+from typing import Any
+
 from . import utils
+
 
 def _value_type_name(v: Any) -> str:
     if v is None: return "null"
@@ -35,7 +39,7 @@ def _walk(obj: Any, key_counter, path_counter, type_counter, array_items_total, 
 def _md_header(t: str, lvl: int = 1) -> str:
     return f"{'#'*lvl} {t}\n\n"
 
-def _table(rows: Iterable[Tuple[str, ...]], headers: Tuple[str, ...]) -> str:
+def _table(rows: Iterable[tuple[str, ...]], headers: tuple[str, ...]) -> str:
     out = ["| " + " | ".join(headers) + " |",
            "| " + " | ".join("---" for _ in headers) + " |"]
     for r in rows:
@@ -50,7 +54,7 @@ def generate_params_md(input_path: Path, output_md: Path) -> None:
     data = utils.load_json(input_path)
 
     key_counter, path_counter = Counter(), Counter()
-    type_counter: Dict[str, Counter] = defaultdict(Counter)
+    type_counter: dict[str, Counter] = defaultdict(Counter)
     array_items_total, array_containers_count = Counter(), Counter()
     root_snapshot = {}
 

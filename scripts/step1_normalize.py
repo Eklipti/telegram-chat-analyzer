@@ -1,10 +1,10 @@
 from __future__ import annotations
+
 import logging
 from pathlib import Path
-from typing import Optional
+
 from . import utils
-from .utils import MEDIA_MAP, apply_shift_and_format 
-from datetime import datetime
+from .utils import MEDIA_MAP, apply_shift_and_format
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +18,8 @@ def _format_size(size_bytes: int) -> str:
 
 def normalize_json(
     input_path: Path,
-    output_dir: Optional[Path],
-    input_path_origin: Optional[str] = None,
+    output_dir: Path | None,
+    input_path_origin: str | None = None,
     force: bool = False,
 ) -> Path:
     """

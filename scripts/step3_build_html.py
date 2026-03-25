@@ -1,14 +1,15 @@
 from __future__ import annotations
+
+import json
 import logging
 from pathlib import Path
-from typing import Optional
-import json
+
 from . import utils
 
 logger = logging.getLogger(__name__)
 
 
-def _load_json_if_exists(p: Path) -> Optional[dict]:
+def _load_json_if_exists(p: Path) -> dict | None:
     try:
         return utils.load_json(p)
     except Exception:

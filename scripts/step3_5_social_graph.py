@@ -1,12 +1,13 @@
 from __future__ import annotations
+
 import logging
-from collections import Counter, defaultdict
-from pathlib import Path
-from typing import Any, Dict, List
-from . import utils
-from datetime import datetime
 import re
+from collections import Counter, defaultdict
+from datetime import datetime
+from pathlib import Path
 from urllib.parse import urlparse
+
+from . import utils
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ STOPWORDS_EN = {
 
 STOPWORDS = STOPWORDS_RU | STOPWORDS_EN
 
-def calculate_mattr(words: List[str], window_size: int = 1000) -> float:
+def calculate_mattr(words: list[str], window_size: int = 1000) -> float:
     """
     Вычисляет MATTR (Moving-Average Type-Token Ratio).
     Среднее разнообразие слов в скользящем окне фиксированного размера.
@@ -75,23 +76,23 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
     chat_id = data.get("id", "unknown_chat_id")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    name_by_id: Dict[str, str] = {}
+    name_by_id: dict[str, str] = {}
     mention_counter: Counter = Counter()
-    reply_matrix: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    reply_matrix: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     quotability_counter: Counter = Counter()
-    msg_id_to_author: Dict[int, str] = {}
+    msg_id_to_author: dict[int, str] = {}
     
-    voice_duration_by_user: Dict[str, float] = defaultdict(float)
+    voice_duration_by_user: dict[str, float] = defaultdict(float)
     domain_counter: Counter = Counter()
-    caps_by_user: Dict[str, int] = defaultdict(int)
-    formatting_by_user: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
-    words_by_user: Dict[str, List[str]] = defaultdict(list)
-    message_count_by_user: Dict[str, int] = defaultdict(int)
+    caps_by_user: dict[str, int] = defaultdict(int)
+    formatting_by_user: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    words_by_user: dict[str, list[str]] = defaultdict(list)
+    message_count_by_user: dict[str, int] = defaultdict(int)
     
-    reply_times_by_user: Dict[str, List[int]] = defaultdict(list)
-    hour_distribution_by_user: Dict[str, Dict[int, int]] = defaultdict(lambda: defaultdict(int))
-    edit_count_by_user: Dict[str, int] = defaultdict(int)
-    msg_id_to_timestamp: Dict[int, int] = {}
+    reply_times_by_user: dict[str, list[int]] = defaultdict(list)
+    hour_distribution_by_user: dict[str, dict[int, int]] = defaultdict(lambda: defaultdict(int))
+    edit_count_by_user: dict[str, int] = defaultdict(int)
+    msg_id_to_timestamp: dict[int, int] = {}
     
     morph = None
     if PYMORPHY_AVAILABLE:

@@ -1,5 +1,6 @@
-import re
 import os
+import re
+
 
 def limit_word_repetitions(text, max_repeats=5):
     """
@@ -75,7 +76,7 @@ def process_chat_log(input_file, output_file, min_message_length=5, max_message_
     12. Удаляет знаки препинания и эмодзи из ников
     """
     
-    with open(input_file, 'r', encoding='utf-8') as f:
+    with open(input_file, encoding='utf-8') as f:
         lines = f.readlines()
     
     # Паттерн для удаления эмодзи
@@ -200,7 +201,7 @@ def process_chat_log(input_file, output_file, min_message_length=5, max_message_
 def get_file_stats(filepath):
     """Возвращает статистику файла: размер в байтах и количество символов"""
     size_bytes = os.path.getsize(filepath)
-    with open(filepath, 'r', encoding='utf-8') as f:
+    with open(filepath, encoding='utf-8') as f:
         content = f.read()
         char_count = len(content)
     return size_bytes, char_count

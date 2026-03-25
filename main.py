@@ -1,15 +1,16 @@
 import argparse
 import logging
-
 from pathlib import Path
+
 from scripts import utils
 from scripts.step1_normalize import normalize_json
 from scripts.step2_aggregates import build_aggregates_json
 from scripts.step3_5_social_graph import build_social_graph
 from scripts.step3_build_html import build_html_report
-from scripts.step4_report_exel import generate_excel_report 
+from scripts.step4_report_exel import generate_excel_report
 from scripts.tool_author_text import generate_author_text_report
 from scripts.tool_context import generate_context_report
+
 
 def main():
 
@@ -204,7 +205,7 @@ def main():
         try:
             norm_path = normalize_json(src_raw, None, "user" if args.input else "auto", force=getattr(args, "force", False))
         except Exception as e:
-            logger.error(f"--- ОШИБКА: Шаг 1 не удался ---")
+            logger.error("--- ОШИБКА: Шаг 1 не удался ---")
             logger.error(e, exc_info=True)
             return 
 

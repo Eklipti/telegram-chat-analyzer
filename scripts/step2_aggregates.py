@@ -1,11 +1,13 @@
 from __future__ import annotations
+
 import logging
 import time
 from collections import Counter, defaultdict
-from pathlib import Path
-from typing import Any, Dict, Optional
-from . import utils
 from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+from . import utils
 
 logger = logging.getLogger(__name__)
 
@@ -20,10 +22,10 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
     chat_id = data.get("id", "unknown_chat_id")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    by_day: Dict[str,int] = Counter()
-    by_hour: Dict[int,int] = Counter()
-    by_author: Dict[str,int] = Counter()
-    name_by_id: Dict[str,str] = {}
+    by_day: dict[str,int] = Counter()
+    by_hour: dict[int,int] = Counter()
+    by_author: dict[str,int] = Counter()
+    name_by_id: dict[str,str] = {}
     message_ids: set[int] = set()
     reply_ids: set[int] = set()
     edited_ids: set[int] = set()
@@ -32,16 +34,16 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
     photo_ids: set[int] = set()
     gif_ids: set[int] = set()
     other_media_ids: set[int] = set()
-    id_to_parent: Dict[int, Optional[int]] = {}
-    id_to_msg: Dict[int, Dict[str, Any]] = {}
-    root_cache: Dict[int, int] = {}
-    thread_size: Dict[int, int] = Counter()
-    thread_participants: Dict[int, set] = defaultdict(set)
+    id_to_parent: dict[int, int | None] = {}
+    id_to_msg: dict[int, dict[str, Any]] = {}
+    root_cache: dict[int, int] = {}
+    thread_size: dict[int, int] = Counter()
+    thread_participants: dict[int, set] = defaultdict(set)
     emoji_counter: Counter = Counter()
     top_reacted_msgs: list[tuple[int,int]] = []
-    reactions_by_author: Dict[str,int] = Counter()
-    media_counter: Dict[str,int] = Counter()
-    polls_by_author: Dict[str,int] = Counter()
+    reactions_by_author: dict[str,int] = Counter()
+    media_counter: dict[str,int] = Counter()
+    polls_by_author: dict[str,int] = Counter()
 
     for m in msgs:
         msg_type = m.get("type")

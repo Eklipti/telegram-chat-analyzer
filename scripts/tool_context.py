@@ -1,12 +1,13 @@
 from __future__ import annotations
+
 import logging
-from pathlib import Path
-from datetime import datetime, timedelta
-from typing import Optional, Tuple
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timedelta
+from pathlib import Path
+
 from . import utils
-from .utils_compress_chat import process_chat_log, get_file_stats
+from .utils_compress_chat import get_file_stats, process_chat_log
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +89,7 @@ def _compress_context_file(
     
     logger.debug(f"Сжатие {input_path.name}: -{compression_percent:.1f}% размер, -{char_compression_percent:.1f}% символов")
 
-def parse_date_argument(date_arg: str) -> Tuple[datetime, datetime]:
+def parse_date_argument(date_arg: str) -> tuple[datetime, datetime]:
     """
     Парсит аргумент --date и возвращает кортеж (start_date, end_date).
     
@@ -131,7 +132,7 @@ def parse_date_argument(date_arg: str) -> Tuple[datetime, datetime]:
         except ValueError as e:
             raise ValueError(f"Неверный формат даты: {date_arg}. Ожидается YYYY-MM-DD или YYYY-MM-DD_YYYY-MM-DD") from e
 
-def extract_date_from_norm(date_norm: Optional[str]) -> Optional[datetime]:
+def extract_date_from_norm(date_norm: str | None) -> datetime | None:
     """
     Извлекает дату из поля date_norm (формат ISO с временной зоной).
     Возвращает naive datetime для сравнения.
@@ -145,7 +146,7 @@ def extract_date_from_norm(date_norm: Optional[str]) -> Optional[datetime]:
     except (ValueError, AttributeError):
         return None
 
-def format_date_for_output(date_norm: Optional[str]) -> str:
+def format_date_for_output(date_norm: str | None) -> str:
     """
     Форматирует date_norm для вывода в формате [YYYY-MM-DD HH:MM:SS].
     """
@@ -262,12 +263,12 @@ def generate_context_report(
                         "msg_date": msg_date
                     })
         
-        logger.info(f"Фильтрация завершена. Найдено сообщений по дням:")
+        logger.info("Фильтрация завершена. Найдено сообщений по дням:")
         for day_str in sorted(messages_by_day.keys()):
             logger.info(f"  {day_str}: {len(messages_by_day[day_str])} сообщений")
         
         # Функция для записи одного дня
-        def write_single_day(date_str: str, filtered_messages: list) -> Tuple[str, bool, Optional[str]]:
+        def write_single_day(date_str: str, filtered_messages: list) -> tuple[str, bool, str | None]:
             """
             Записывает сообщения для одного дня в файл.
             Returns: (date_str, success, error_message)
@@ -330,7 +331,7 @@ def generate_context_report(
         
         # Итоговая статистика
         logger.info(f"{'='*60}")
-        logger.info(f"РЕЖИМ SPLIT ЗАВЕРШЕН")
+        logger.info("РЕЖИМ SPLIT ЗАВЕРШЕН")
         logger.info(f"{'='*60}")
         logger.info(f"Всего дней: {total_days}")
         logger.info(f"Успешно обработано: {completed}")
@@ -410,13 +411,13 @@ def generate_context_report(
         if txt_path.exists():
             logger.info(f"Контекстный отчет сохранен: {txt_path}")
         else:
-            logger.warning(f"Файл не создан: за указанный период сообщений не найдено")
+            logger.warning("Файл не создан: за указанный период сообщений не найдено")
             return
         
         # Если указан флаг compress, создаем сжатую версию
         if compress and txt_path.exists():
             compressed_path = tool_output_dir / f"context_{date_str}_compressed.txt"
-            logger.info(f"Создание сжатой версии контекста...")
+            logger.info("Создание сжатой версии контекста...")
             logger.info(f"Минимальная длина сообщения: {min_length} символов")
             logger.info(f"Максимальная длина сообщения: {max_length} символов")
             
@@ -434,15 +435,15 @@ def generate_context_report(
             char_compression_percent = ((input_chars - output_chars) / input_chars) * 100 if input_chars > 0 else 0
             
             logger.info(f"{'='*60}")
-            logger.info(f"СТАТИСТИКА СЖАТИЯ:")
+            logger.info("СТАТИСТИКА СЖАТИЯ:")
             logger.info(f"{'='*60}")
-            logger.info(f"Исходный файл:")
+            logger.info("Исходный файл:")
             logger.info(f"  Размер: {input_size:,} байт ({input_size / 1024:.2f} КБ)")
             logger.info(f"  Символов: {input_chars:,}")
-            logger.info(f"Сжатый файл:")
+            logger.info("Сжатый файл:")
             logger.info(f"  Размер: {output_size:,} байт ({output_size / 1024:.2f} КБ)")
             logger.info(f"  Символов: {output_chars:,}")
-            logger.info(f"Сокращение:")
+            logger.info("Сокращение:")
             logger.info(f"  Размер: -{input_size - output_size:,} байт ({compression_percent:.2f}%)")
             logger.info(f"  Символов: -{input_chars - output_chars:,} ({char_compression_percent:.2f}%)")
             logger.info(f"{'='*60}")
