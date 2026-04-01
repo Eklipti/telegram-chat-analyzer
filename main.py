@@ -65,7 +65,8 @@ def main():
     )
     p9.add_argument("-i", "--input", type=Path, help="Путь к нормализованному JSON (опционально)")
     p9.add_argument("--compress", action="store_true", help="Создать сжатую версию контекста")
-    p9.add_argument("--no-save", action="store_true", help="Не сохранять несжатую версию (работает только с --compress)")
+    p9.add_argument("--no-save", action="store_true",
+                    help="Не сохранять несжатую версию (работает только с --compress)")
     p9.add_argument(
         "-s",
         "--split",

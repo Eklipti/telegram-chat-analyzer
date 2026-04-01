@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from collections import Counter, defaultdict
 from collections.abc import Iterable
 from datetime import datetime
@@ -96,7 +95,6 @@ def normalize_messages(
     return df, dict(anomalies)
 
 
-# ------------------------------ Метрики и агрегирование ------------------------------
 
 
 def compute_metrics(df: pd.DataFrame) -> dict[str, Any]:
@@ -135,7 +133,7 @@ def compute_metrics(df: pd.DataFrame) -> dict[str, Any]:
     df["Имя"] = df["FromID"].map(names_by_fromid)
     by_user = df.groupby(["FromID", "Имя"]).size().rename("Сообщений").reset_index()
 
-    total_messages = int(len(df))
+    total_messages = len(df)
     unique_users = int(df["FromID"].nunique())
 
     # Флаги N1/N2/M
@@ -171,10 +169,8 @@ def compute_metrics(df: pd.DataFrame) -> dict[str, Any]:
     pivot_wide["Всего"] = pivot_wide.loc[:, pivot_wide.columns.difference(["FromID", "Имя"])].sum(axis=1)
     cols_order = ["FromID", "Имя"] + [c for c in pivot_wide.columns if c not in ("FromID", "Имя", "Всего")] + ["Всего"]
     pivot_wide = pivot_wide[cols_order]
-    # Отсортируем по Всего
     pivot_wide = pivot_wide.sort_values("Всего", ascending=False).reset_index(drop=True)
 
-    # Медиа (итоги за период)
     media_counts: Counter[str] = Counter()
 
     for v in df["MediaCat"].dropna():
@@ -187,12 +183,11 @@ def compute_metrics(df: pd.DataFrame) -> dict[str, Any]:
         media_rows.append({"Категория": cat, "Сообщений": int(media_counts.get(cat, 0))})
     media_df = pd.DataFrame(media_rows)
 
-    # Молчуны: < 10 сообщений
     quiet = by_user_sorted[by_user_sorted["Сообщений"] < 10].copy()
     quiet = quiet.sort_values("Сообщений", ascending=True).reset_index(drop=True)
     quiet = quiet[["FromID", "Имя", "Сообщений"]]
 
-    metrics = {
+    return {
         "df": df,
         "days": days,
         "hours": hours,
@@ -209,10 +204,6 @@ def compute_metrics(df: pd.DataFrame) -> dict[str, Any]:
         "weeks_float": weeks_float,
         "months_float": months_float,
     }
-    return metrics
-
-
-# ------------------------------ Вывод в Excel (xlsxwriter) ------------------------------
 
 
 def write_excel(
@@ -244,7 +235,6 @@ def write_excel(
     weeks_float = metrics["weeks_float"]
     months_float = metrics["months_float"]
 
-    # Excel writer
     with pd.ExcelWriter(
         output_path,
         engine="xlsxwriter",
@@ -254,7 +244,6 @@ def write_excel(
     ) as writer:
         workbook = writer.book
 
-        # Форматы
         fmt_thousands = workbook.add_format({"num_format": "#,##0"})
         fmt_header = workbook.add_format({"bold": True, "bg_color": "#F2F2F2", "border": 1})
         fmt_text_wrap = workbook.add_format({"text_wrap": True})
@@ -265,10 +254,8 @@ def write_excel(
         fmt_center = workbook.add_format({"align": "center"})
         fmt_title = workbook.add_format({"bold": True, "font_size": 12})
 
-        # --- Лист "Активности" ---
         ws_act = workbook.add_worksheet("Активности")
         writer.sheets["Активности"] = ws_act
-        # Дни
         act_days_startrow = 0
         ws_act.write(act_days_startrow, 0, "Дни", fmt_title)
         act_days_startrow += 1
@@ -286,7 +273,6 @@ def write_excel(
                 1,
                 {"type": "data_bar"},
             )
-        # Часы
         act_hours_startrow = act_days_startrow + n_days + 3
         ws_act.write(act_hours_startrow, 0, "Часы", fmt_title)
         act_hours_startrow += 1
@@ -306,11 +292,9 @@ def write_excel(
             )
         ws_act.freeze_panes(act_days_startrow + 1, 0)
 
-        # --- Лист "Топы" ---
         ws_top = workbook.add_worksheet("Топы")
         writer.sheets["Топы"] = ws_top
         cur_row = 0
-        # Итог по участникам
         ws_top.write(cur_row, 0, "Итог по участникам", fmt_title)
         cur_row += 1
         cols_user = ["FromID", "Имя", "Сообщений", "AvgWeek", "AvgMonth", "N1", "N2", "M"]
@@ -327,7 +311,6 @@ def write_excel(
         if n_user > 0:
             ws_top.conditional_format(cur_row + 1, 2, cur_row + n_user, 2, {"type": "data_bar"})
         cur_row = cur_row + n_user + 3
-        # Помесячно (длинная)
         ws_top.write(cur_row, 0, "Помесячно (длинная)", fmt_title)
         cur_row += 1
         monthly_startrow = cur_row
@@ -341,20 +324,7 @@ def write_excel(
         ws_top.set_column(1, 1, 12)
         ws_top.set_column(2, 2, 24)
         ws_top.set_column(3, 3, 14, fmt_thousands)
-        # if n_monthly >= 0:
-        #     table_name = "tbl_monthly"
-        #     ws_top.add_table(
-        #         monthly_startrow, 0,
-        #         monthly_endrow, len(monthly_long_cols) - 1,
-        #         {
-        #             "name": table_name,
-        #             "columns": [{"header": h} for h in monthly_long_cols],
-        #             "style": "Table Style Medium 2",
-        #             "autofilter": False
-        #         },
-        #     )
         cur_row = monthly_endrow + 3
-        # Широкая кросс-таблица (+ Тренд)
         ws_top.write(cur_row, 0, "Кросс-таблица (участник × месяц)", fmt_title)
         cur_row += 1
         months_cols = [c for c in pivot_wide.columns if c not in ("FromID", "Имя", "Всего")]
@@ -388,7 +358,6 @@ def write_excel(
                 {"type": "data_bar"},
             )
         ws_top.freeze_panes(1, 0)
-        # Autofilter
         if "wide_endrow" in locals() and "monthly_endrow" in locals():
             total_rows = max(wide_endrow, monthly_endrow)
             total_cols = max(n_wide_cols, len(monthly_long_cols))
@@ -404,7 +373,6 @@ def write_excel(
         if total_rows > 0 and total_cols > 0:
             ws_top.autofilter(0, 0, total_rows, total_cols - 1)
 
-        # --- Лист "Медиа" ---
         media_df_sorted = media_df.sort_values("Сообщений", ascending=False).reset_index(drop=True)
         media_df_sorted.to_excel(writer, sheet_name="Медиа", index=False)
         ws_media = writer.sheets["Медиа"]
@@ -420,7 +388,6 @@ def write_excel(
                 {"type": "data_bar"},
             )
 
-        # --- Лист "Молчуны" ---
         quiet_df.to_excel(writer, sheet_name="Молчуны", index=False)
         ws_quiet = writer.sheets["Молчуны"]
         ws_quiet.autofilter(0, 0, len(quiet_df), 2)
@@ -428,7 +395,6 @@ def write_excel(
         ws_quiet.set_column(1, 1, 24)
         ws_quiet.set_column(2, 2, 14, fmt_thousands)
 
-        # ---------------- Общее ----------------
         ws_sum = workbook.add_worksheet("Общее")
         writer.sheets["Общее"] = ws_sum
         row = 0
@@ -437,9 +403,8 @@ def write_excel(
         row += 1
         gen_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # Обновляем часовой пояс и период
         params = [
-            ("Имя входного файла", os.path.basename(input_path)),
+            ("Имя входного файла", Path(input_path).name),
             ("Дата/время генерации", gen_time),
             ("Часовой пояс", tz_note),
             (f"Период ({tz_note.split(' ')[0]})", f"{min_date} — {max_date}"),
@@ -471,7 +436,6 @@ def write_excel(
 
         row += 1
         ws_sum.write(row, 0, "Динамика по дням (sparkline)", fmt_title)
-        # Sparkline
         if len(days) > 0:
             spark_cell = xl_rowcol_to_cell(row, 1)
             days_values_first = xl_rowcol_to_cell(act_days_startrow + 1, 1)
@@ -480,7 +444,6 @@ def write_excel(
             ws_sum.add_sparkline(spark_cell, {"range": value_range})
         row += 2
 
-        # Валидации/аномалии
         ws_sum.write(row, 0, "Валидации / аномалии (при чтении [0].json)", fmt_title)
         row += 1
 
@@ -502,7 +465,6 @@ def write_excel(
         ws_sum.set_column(0, 0, 40)
         ws_sum.set_column(1, 1, 40)
 
-        # ---------------- Сводная (PivotTable) ----------------
         ws_pivot = workbook.add_worksheet("Сводная")
         writer.sheets["Сводная"] = ws_pivot
 
@@ -579,7 +541,6 @@ def generate_excel_report(
     df, anomalies = normalize_messages(raw, logger)
     metrics = compute_metrics(df)
 
-    # Передаем 'tz_note' вместо 'tz_shift_hours'
     write_excel(
         output_path=str(output_excel_path),
         input_path=str(normalized_json_path),

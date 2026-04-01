@@ -679,7 +679,7 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
 
     total_mentions = sum(mention_counter.values())
     total_replies = sum(sum(to_dict.values()) for to_dict in reply_matrix.values())
-    unique_mentioners = len(set(uid for uid in mention_counter.keys()))
+    unique_mentioners = len(set(mention_counter.keys()))
     unique_repliers = len(reply_matrix)
 
     social_graph_data = {
@@ -706,7 +706,8 @@ def build_social_graph(input_json: Path, out_dir: Path) -> None:
         },
         "external_links": {"description": "Какие домены чаще всего упоминаются в чате", "top_domains": domains_top},
         "caps_screamers": {"description": "Кто злоупотребляет CAPS LOCK", "top_users": caps_screamers_top},
-        "formatting_stylists": {"description": "Кто чаще использует форматирование текста", "top_users": formatting_top},
+        "formatting_stylists": {"description": "Кто чаще использует форматирование текста",
+                                "top_users": formatting_top},
         "vocabulary_diversity": {
             "description": (
                 "Лексическое разнообразие по методу MATTR (Moving-Average Type-Token Ratio). "

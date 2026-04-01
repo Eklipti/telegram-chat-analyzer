@@ -1,5 +1,5 @@
-import os
 import re
+from pathlib import Path
 
 
 def limit_word_repetitions(text, max_repeats=5):
@@ -79,10 +79,9 @@ def process_chat_log(input_file, output_file, min_message_length=5, max_message_
     12. Удаляет знаки препинания и эмодзи из ников
     """
 
-    with open(input_file, encoding="utf-8") as f:
+    with Path(input_file).open(encoding="utf-8") as f:
         lines = f.readlines()
 
-    # Паттерн для удаления эмодзи
     emoji_pattern = re.compile(
         "["
         "\U0001f600-\U0001f64f"  # смайлики
@@ -166,9 +165,8 @@ def process_chat_log(input_file, output_file, min_message_length=5, max_message_
             if len(message) > max_message_length:
                 message = message[:max_message_length].strip()
 
-            if current_user:
-                if not current_messages or current_messages[-1] != message:
-                    current_messages.append(message)
+            if current_user and (not current_messages or current_messages[-1] != message):
+                current_messages.append(message)
 
     if current_user and current_messages:
         if len(current_messages) == 1:
@@ -180,7 +178,7 @@ def process_chat_log(input_file, output_file, min_message_length=5, max_message_
 
     processed_lines = processed_messages
 
-    with open(output_file, "w", encoding="utf-8") as f:
+    with Path(output_file).open("w", encoding="utf-8") as f:
         f.write("\n".join(processed_lines))
 
     return len(processed_lines)
@@ -188,8 +186,8 @@ def process_chat_log(input_file, output_file, min_message_length=5, max_message_
 
 def get_file_stats(filepath):
     """Возвращает статистику файла: размер в байтах и количество символов"""
-    size_bytes = os.path.getsize(filepath)
-    with open(filepath, encoding="utf-8") as f:
+    size_bytes = Path(filepath).stat().st_size
+    with Path(filepath).open(encoding="utf-8") as f:
         content = f.read()
         char_count = len(content)
     return size_bytes, char_count

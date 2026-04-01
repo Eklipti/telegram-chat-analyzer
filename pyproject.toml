@@ -19,7 +19,7 @@ dev = [
 ]
 
 [tool.ruff]
-line-length = 121
+line-length = 120
 target-version = "py313"
 [tool.ruff.lint]
 select = [
@@ -28,7 +28,14 @@ select = [
     "I",
     "B",
     "UP",
+    "SIM",
+    "C4",
+    "PTH",
+    "T20",
+    "RET",
+    "RUF",
 ]
+ignore = ["RUF001", "RUF002", "RUF003"]
 [tool.ruff.format]
 quote-style = "double"
 
@@ -37,4 +44,12 @@ python_version = "3.13"
 check_untyped_defs = true
 warn_return_any = true
 warn_unreachable = true
+ignore_missing_imports = false
+
+[[tool.mypy.overrides]]
+module = [
+    "pandas.*",
+    "xlsxwriter.*",
+    "pymorphy3.*"
+]
 ignore_missing_imports = true

@@ -60,13 +60,11 @@ def build_aggregates_json(input_0: Path, out_dir: Path) -> None:
             if isinstance(pid, int):
                 reply_ids.add(mid)
 
-        if "edited" in m or "edited_unixtime" in m or meta.get("edited_norm"):
-            if isinstance(mid, int):
-                edited_ids.add(mid)
+        if ("edited" in m or "edited_unixtime" in m or meta.get("edited_norm")) and isinstance(mid, int):
+            edited_ids.add(mid)
 
-        if "reactions" in m:
-            if isinstance(mid, int):
-                react_ids.add(mid)
+        if "reactions" in m and isinstance(mid, int):
+            react_ids.add(mid)
 
         media_cat = meta.get("media_cat")
         if media_cat is not None:

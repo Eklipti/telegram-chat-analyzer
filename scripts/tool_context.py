@@ -25,7 +25,7 @@ def _write_context_file(txt_path: Path, filtered_messages: list) -> None:
 
     WALL_THRESHOLD = timedelta(minutes=5)
 
-    with open(txt_path, "w", encoding="utf-8") as f:
+    with Path(txt_path).open("w", encoding="utf-8") as f:
         current_group = None
 
         for msg in filtered_messages:
@@ -34,27 +34,21 @@ def _write_context_file(txt_path: Path, filtered_messages: list) -> None:
             text_plain = msg["text_plain"]
             msg_date = msg["msg_date"]
 
-            # Проверяем, можно ли добавить к текущей группе
             if current_group is not None:
                 last_msg_date = current_group["last_date"]
                 time_diff = msg_date - last_msg_date
 
-                # Если тот же пользователь и разница < порога - добавляем в группу
                 if current_group["from"] == from_name and time_diff < WALL_THRESHOLD:
                     current_group["texts"].append(text_plain)
                     current_group["last_date"] = msg_date
                     continue
-                else:
-                    # Завершаем текущую группу и выводим
-                    f.write(f"{current_group['from']} {current_group['date']}\n")
-                    for text in current_group["texts"]:
-                        f.write(f'"{text}"\n')
-                    f.write("\n")
+                f.write(f"{current_group['from']} {current_group['date']}\n")
+                for text in current_group["texts"]:
+                    f.write(f'"{text}"\n')
+                f.write("\n")
 
-            # Начинаем новую группу
             current_group = {"from": from_name, "date": date_formatted, "texts": [text_plain], "last_date": msg_date}
 
-        # Выводим последнюю группу
         if current_group is not None:
             f.write(f"{current_group['from']} {current_group['date']}\n")
             for text in current_group["texts"]:
@@ -114,15 +108,14 @@ def parse_date_argument(date_arg: str) -> tuple[datetime, datetime]:
             raise ValueError(f"Начальная дата не может быть позже конечной: {date_arg}")
 
         return start_date, end_date
-    else:
-        # Один день: {YYYY-MM-DD}
-        try:
-            date_obj = datetime.strptime(date_arg, "%Y-%m-%d")
-            start_date = datetime.combine(date_obj.date(), datetime.min.time())
-            end_date = datetime.combine(date_obj.date(), datetime.max.time())
-            return start_date, end_date
-        except ValueError as e:
-            raise ValueError(f"Неверный формат даты: {date_arg}. Ожидается YYYY-MM-DD или YYYY-MM-DD_YYYY-MM-DD") from e
+    # Один день: {YYYY-MM-DD}
+    try:
+        date_obj = datetime.strptime(date_arg, "%Y-%m-%d")
+        start_date = datetime.combine(date_obj.date(), datetime.min.time())
+        end_date = datetime.combine(date_obj.date(), datetime.max.time())
+        return start_date, end_date
+    except ValueError as e:
+        raise ValueError(f"Неверный формат даты: {date_arg}. Ожидается YYYY-MM-DD или YYYY-MM-DD_YYYY-MM-DD") from e
 
 
 def extract_date_from_norm(date_norm: str | None) -> datetime | None:
